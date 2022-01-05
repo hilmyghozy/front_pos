@@ -1,0 +1,112 @@
+/*side bar */
+button {
+  width: 100%;
+}
+.button-bottom {
+  position: absolute;
+  bottom: 5px;
+  width: 100%;
+}
+.button-bottom h5{
+  margin-bottom: 0;
+}
+.button-bottom .table-pembayaran td.harga b{
+  font-weight: bold;
+  font-size: 14px;
+}
+.button-bottom .payment{
+  border-top: 1px solid #6c757d;
+  padding-top: 5px;
+}
+.type-btn{
+  margin-bottom: 5px;
+}
+.type-btn .btn-style{
+  margin-bottom: 5px;
+}
+.btn-style{
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 24px;
+  padding: .3rem .8rem;
+  letter-spacing: .5px;
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  border-radius: .25rem;
+  outline: none;
+  border: 1px solid transparent;
+}
+.btn-green {
+  box-shadow: 0 2px 6px #81d694;
+  background-color: #169870;
+  border-color: #169870;
+  color: #fff;
+}
+.btn-yel {
+  box-shadow: 0 2px 6px #e2b161;
+  background-color: #F39F19;
+  border-color: #F39F19;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.btn-red {
+  box-shadow: 0 2px 6px #ffa19d;
+  background-color: #f1241b;
+  border-color: #f1241b;
+  color: #fff;
+}
+.btn-yellow {
+  width: 25px;
+  height: 25px;
+  background-color: #F39F19;
+  border-color: #F39F19;
+  color: #fff;
+  padding: 0;
+  outline: none;
+}
+.btn-produk{
+  width: 150px;
+  height: 100px;
+  box-shadow: 0 2px 6px #81d694;
+  background-color: #169870;
+  border-color: #169870;
+  color: #fff;
+  margin: 5px;
+}
+.btn-produk:focus, .btn-produk:active, .btn-produk:hover{
+  border-color: #333!important;
+  background: #fff;
+  color: #333;
+}
+.btn-pay{
+  width: 105px;
+  height: 70px;
+  box-shadow: 0 2px 6px #81d694;
+  background-color: #fff;
+  border-color: #169870;
+  color: #169870;
+  margin: 5px;
+}
+.btn-pay img{
+  max-width: 100%;
+  height: 30px;
+  display: block;
+  margin: 0 auto;
+}
+.modal .btn-green {
+  margin-bottom: 10px;
+}
+.modal .col-sm-4{
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+.hidden {
+  display: none;
+}
+
+#pembayaranModal .table-responsive td:first-child, #pembayaranModal .table-responsive td:last-child{
+  width: 140px;
+}
