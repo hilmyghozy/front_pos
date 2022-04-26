@@ -4,8 +4,17 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Http\Services\DoPrintDapurRevisiService;
+use App\Http\Services\DoPrintDapurService;
+use App\Http\Services\DoPrintDeleteOrderService;
+use App\Http\Services\DoPrintNoteService;
+use App\Http\Services\DoPrintPCService;
+use App\Http\Services\DoPrintResiService;
+use App\Http\Services\GetAdditionalTextService;
+use App\Http\Services\GetDataPembayaranService;
+use App\Http\Services\SetEditOrderOpsiMenu;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 use Mike42\Escpos\Printer;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
@@ -84,6 +93,29 @@ class PembayaranController extends Controller
     }
 
     public function data()
+    {
+        $no = 1;
+        $id_store = session('id_store');
+        $pembayaran = DB::table('pos_front_payment')
+            ->where('pos_front_payment.id_store', $id_store)
+            ->where('pos_front_payment.id_kasir', session('id'))
+            ->orderBy('pos_front_payment.id', 'desc')
+            ->get();
+        $data_pembayaran = new GetDataPembayaranService($pembayaran);
+        $data_pembayaran->setData();
+        $sub_total = $data_pembayaran->sub_total;
+        $sub_total_thirdparty = $data_pembayaran->sub_total_thirdparty;
+        $total = $data_pembayaran->total;
+        $thirdparty = $data_pembayaran->thirdparty;
+        $pajak = $data_pembayaran->pajak;
+        $pajak_thirdparty = $data_pembayaran->pajak_thirdparty;
+        $pembayaran = $data_pembayaran->data;
+
+        $data = view('_partials.invoice', compact('pembayaran', 'sub_total', 'thirdparty', 'total', 'pajak_thirdparty', 'pajak', 'sub_total_thirdparty'));
+        return $data;
+    }
+
+    public function old_data()
     {
 
         $no = 1;
@@ -169,9 +201,15 @@ class PembayaranController extends Controller
             ->first();
 
         $item_bayar = DB::table('pos_belum_bayar')
+            ->join('pos_product_kategori', 'pos_product_kategori.id_kategori', '=', 'pos_belum_bayar.id_kategori')
+            ->select('pos_belum_bayar.*', 'pos_product_kategori.is_paket')
             ->where('pos_belum_bayar.kode_temp', $kode_temp)
             ->get();
 
+        $item_bayar = new GetDataPembayaranService($item_bayar);
+        $item_bayar->setDataOrder();
+        $sub_total = $item_bayar->sub_total;
+        $qty_item = $item_bayar->qty;
         $type_or = "";
         if ($pembayaran->type_order == 1) {
             $type_or = "Third Party";
@@ -180,75 +218,8 @@ class PembayaranController extends Controller
         } elseif ($pembayaran->type_order == 3) {
             $type_or = "Dine In";
         }
-
-        ?>
-        <tr>
-            <th colspan="2" class="text-left">Kode</th>
-            <td class="text-right" id="order_no_invoice"><?= $kode_temp ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Type Order</th>
-            <td class="text-right"><?= $type_or ?> - <?= $pembayaran->keterangan_order ?></td>
-        </tr>
-        <?php
-        $qty_item = 0;
-        if($pembayaran->type_order == 1){
-             foreach ($item_bayar as $key => $value) {
-                $third = $value->harga * $value->qty;
-        ?>
-            <tr>
-                <th class="text-left"><?= $value->nama_item ?></th>
-                <td class="text-center"><?= $value->qty ?></td>
-                <td class="text-right"><?= number_format($third, 0, ',', '.') ?></td>
-            </tr>
-        <?php
-            $qty_item += $value->qty;
-        }
-
-        ?>
-        <tr>
-            <th colspan="2" class="text-left">Subtotal</th>
-            <td class="text-right"><?= number_format($pembayaran->subtotal, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Diskon</th>
-            <td class="text-right" id="diskon_order"><?= number_format($pembayaran->total - $pembayaran->subtotal, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th class="text-left">Total</th>
-            <td class="text-left"><?= $qty_item ?></td>
-            <td class="text-right" id="total_order"><?= number_format($pembayaran->total, 0, ',', '.') ?></td>
-        </tr>
-    <?php
-        }else{
-        foreach ($item_bayar as $key => $value) {
-
-        ?>
-            <tr>
-                <th class="text-left"><?= $value->nama_item ?></th>
-                <td class="text-center"><?= $value->qty ?></td>
-                <td class="text-right"><?= number_format($value->total, 0, ',', '.') ?></td>
-            </tr>
-        <?php
-            $qty_item += $value->qty;
-        }
-
-        ?>
-        <tr>
-            <th colspan="2" class="text-left">Subtotal</th>
-            <td class="text-right"><?= number_format($pembayaran->subtotal, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Diskon</th>
-            <td class="text-right" id="diskon_order"><?= number_format($pembayaran->total - $pembayaran->subtotal, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th class="text-left">Total</th>
-            <td class="text-left"><?= $qty_item ?></td>
-            <td class="text-right" id="total_order"><?= number_format($pembayaran->total, 0, ',', '.') ?></td>
-        </tr>
-    <?php
-        }
+        $view = view('_partials.detail_belum_bayar', compact('pembayaran', 'sub_total', 'qty_item', 'item_bayar', 'type_or', 'kode_temp'));
+        return $view;
     }
 
     public function add_revisi_order($kode_temp)
@@ -261,16 +232,28 @@ class PembayaranController extends Controller
             ->where('pos_belum_bayar.kode_temp', $kode_temp)
             ->get();
 
+        $data_pos_revisi_bayar = [];
         foreach ($item_bayar as $key => $value) {
-            DB::table('pos_revisi_bayar')->insert([
-                [
-                    'id' => null, 'nama_item' => $value->nama_item,
-                    'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $value->id_kasir,
-                    'harga' => $value->harga, 'qty' => $value->qty, 'total' => $value->total,
-                    'kode_temp' => $kode_temp
-                ]
+            array_push($data_pos_revisi_bayar, [
+                'id' => null,
+                'id_pos_belum_bayar' => $value->id,
+                'nama_item' => $value->nama_item,
+                'id_item' => $value->id_item,
+                'id_kategori' => $value->id_kategori,
+                'id_store' => $value->id_store,
+                'id_kasir' => $value->id_kasir,
+                'harga' => $value->harga,
+                'qty' => $value->qty,
+                'total' => $value->total,
+                'kode_temp' => $kode_temp,
+                'additional_menu' => $value->additional_menu,
+                'opsi_menu' => $value->opsi_menu,
+                'item_type' => $value->item_type,
+                'item_size' => $value->item_size,
+                'pajak' => $value->pajak
             ]);
         }
+        DB::table('pos_revisi_bayar')->insert($data_pos_revisi_bayar);
     }
 
     public function get_note($id)
@@ -287,7 +270,16 @@ class PembayaranController extends Controller
     {
         $item_bayar = DB::table('pos_revisi_bayar')
             ->where('pos_revisi_bayar.id', $id)
-            ->delete();
+            ->first();
+        if ($item_bayar) {
+            DB::table('pos_revisi_bayar')
+                ->where('pos_revisi_bayar.id', $id)
+                ->delete();
+            $item_bayar = new GetDataPembayaranService([$item_bayar]);
+            $item_bayar->setDataOrder();
+            $item_bayar = $item_bayar->data[0];
+            return response()->json($item_bayar);
+        }
     }
 
     public function detail_belum_bayar_edit($kode_temp)
@@ -305,7 +297,8 @@ class PembayaranController extends Controller
         $item_bayar = DB::table('pos_revisi_bayar')
             ->where('pos_revisi_bayar.kode_temp', $kode_temp)
             ->get();
-
+        $item_bayar = new GetDataPembayaranService($item_bayar);
+        $item_bayar->setDataOrder();
         $type_or = "";
         if ($pembayaran->type_order == 1) {
             $type_or = "Third Party";
@@ -314,104 +307,15 @@ class PembayaranController extends Controller
         } elseif ($pembayaran->type_order == 3) {
             $type_or = "Dine In";
         }
-
-         if ($pembayaran->type_order == 1) {
-            ?>
-            <tr>
-                <th colspan="2" class="text-left">Kode</th>
-                <td colspan="2" class="text-right" id="id_orderEdit"><?= $kode_temp ?></td>
-            </tr>
-            <tr>
-                <th colspan="2" class="text-left">Type Order</th>
-                <td colspan="2" class="text-right"><?= $type_or ?> - <?= $pembayaran->keterangan_order ?></td>
-            </tr>
-            <?php
-            $qty_item = 0;
-            $tot = 0;
-            foreach ($item_bayar as $key => $value) {
-                $third = $value->harga * $value->qty;
-            ?>
-            <tr>
-                <th class="text-left"><?= $value->nama_item ?></th>
-                <td class="text-center"><?= $value->qty ?></td>
-                <td class="text-right"><?= number_format($third, 0, ',', '.') ?></td>
-                <td class="text-right">
-                    <button class="btn btn-warning btn-sm col-5" onclick="edit_orderEdit('<?= $value->id ?>')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm col-5" onclick="del_orderEdit('<?= $value->id ?>')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        <?php
-            $qty_item += $value->qty;
-            $tot += $value->total;
-        }
-        $tot_diskon = $pembayaran->subtotal - $pembayaran->total;
-
-        ?>
-        <tr>
-            <th colspan="2" class="text-left">Subtotal</th>
-            <td colspan="2" class="text-right" id="subtotalOrderEdit"><?= number_format($pembayaran->total, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Diskon</th>
-            <td colspan="2" class="text-right" id="diskon_order">0</td>
-        </tr>
-        <tr>
-            <th class="text-left">Total</th>
-            <td class="text-left"><?= $qty_item ?></td>
-            <td colspan="2" class="text-right" id="totalOrderEdit"><?= number_format($pembayaran->total, 0, ',', '.') ?></td>
-        </tr>
-    <?php
-        }else{
-    ?>
-        <tr>
-            <th colspan="2" class="text-left">Kode</th>
-            <td colspan="2" class="text-right" id="id_orderEdit"><?= $kode_temp ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Type Order</th>
-            <td colspan="2" class="text-right"><?= $type_or ?> - <?= $pembayaran->keterangan_order ?></td>
-        </tr>
-        <?php
         $qty_item = 0;
-        $tot = 0;
-        foreach ($item_bayar as $key => $value) {
-
-        ?>
-            <tr>
-                <th class="text-left"><?= $value->nama_item ?></th>
-                <td class="text-center"><?= $value->qty ?></td>
-                <td class="text-right"><?= number_format($value->total, 0, ',', '.') ?></td>
-                <td class="text-right">
-                    <button class="btn btn-warning btn-sm col-5" onclick="edit_orderEdit('<?= $value->id ?>')"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm col-5" onclick="del_orderEdit('<?= $value->id ?>')"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        <?php
-            $qty_item += $value->qty;
-            $tot += $value->total;
-        }
-        $tot_diskon = $pembayaran->subtotal - $pembayaran->total;
-
-        ?>
-        <tr>
-            <th colspan="2" class="text-left">Subtotal</th>
-            <td colspan="2" class="text-right" id="subtotalOrderEdit"><?= number_format($tot, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th colspan="2" class="text-left">Diskon</th>
-            <td colspan="2" class="text-right" id="diskon_order"><?= number_format($tot_diskon, 0, ',', '.') ?></td>
-        </tr>
-        <tr>
-            <th class="text-left">Total</th>
-            <td class="text-left"><?= $qty_item ?></td>
-            <td colspan="2" class="text-right" id="totalOrderEdit"><?= number_format($tot - $tot_diskon, 0, ',', '.') ?></td>
-        </tr>
-    <?php
-        }
+        $view = view('_partials.detail_belum_bayar_edit', compact('kode_temp', 'type_or', 'pembayaran', 'item_bayar', 'qty_item'));
+        return $view;
     }
 
     public function detail_belum_bayar_editItem($id)
     {
+        $id_paket = request()->get('id_paket') ?: 0;
+        $id_kategori = request()->get('id_kategori') ?: 0;
 
         $no = 1;
         $id_store = session('id_store');
@@ -420,121 +324,286 @@ class PembayaranController extends Controller
             ->where('pos_revisi_bayar.id', $id)
             ->first();
 
+        $item_revisi = new GetDataPembayaranService([$item_revisi]);
+        $item_revisi->setDataOrder();
+        $item_revisi = $item_revisi->data[0];
+        // return response()->json($item_revisi);
         $item_product = DB::table('pos_product_item')
-            ->where('id_store', session('id_store'))
-            ->where('id_kategori', $item_revisi->id_kategori)
+            ->join('pos_product_kategori', 'pos_product_kategori.id_kategori', '=', 'pos_product_item.id_kategori')
+            ->select('pos_product_item.*', 'pos_product_kategori.is_paket')
+            ->where('pos_product_item.id_store', $id_store)
+            ->where('pos_product_item.id_kategori', $item_revisi->id_kategori)
             ->get();
 
-    ?>
-        <div class="form-group">
-            <label for="from">From</label>
-            <div class="d-flex justify-content-between">
-                <input type="hidden" id="id_item_edit_order" value="<?= $id ?>">
-                <input type="text" value="<?= $item_revisi->nama_item ?>" class="form-control col-8" readonly>
-                <input type="text" value="<?= $item_revisi->qty ?>" class="form-control col-3" readonly>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="from">To</label>
-            <div class="d-flex justify-content-between">
-                <select id="sel_order_revisi" class="form-control col-8">
-                    <?php foreach ($item_product as $key => $value) { ?>
-                        <option value="<?= $value->id_item ?>" <?= $value->nama_item == $item_revisi->nama_item ? 'selected' : null ?>><?= $value->nama_item ?> @<?= $value->harga_jual ?></option>
-                    <?php } ?>
-                </select>
-                <input type="number" min="1" value="1" id="qty_order_revisi" class="form-control col-3">
-            </div>
-        </div>
-    <?php
-
+        $additional_menu = DB::table('pos_product_kategori_additional')->where('id_store', $id_store)->get();
+        $view = view('_partials.detail_belum_bayar_editItem', compact('id', 'item_revisi', 'item_product', 'id_kategori'));
+        return $view;
     }
 
     public function edit_item_order(Request $request)
     {
-        $item_from = DB::table('pos_revisi_bayar')
-            ->where('id', $request->id_item)
+        $pos_belum = DB::table('pos_belum')
+            ->where('kode_temp', $request->kode_temp)
             ->first();
 
         $item_to = DB::table('pos_product_item')
-            ->where('id_item', $request->id_item_sel)
+            ->where('id_item', $request->id)
             ->first();
+            
+        $pos_revisi_bayar = DB::table('pos_revisi_bayar')->where('id', $request->id_pos_revisi_bayar)->first();
+        if (!$pos_revisi_bayar) return response()->json('error', 404);
+        $qty_pos_revisi_bayar = $pos_revisi_bayar->qty;
+        $qty_item = $request->qty_item;
+        $opsi_menu = $request->input('opsi_menu') ?: [];
+        $item_type = $request->input('item_type') ?: null;
+        $item_size = $request->input('item_size') ?: null;
+        $additional_menu = $request->input('additional_menu') ?: [];
 
-        $checkitem = DB::table('pos_revisi_bayar')
-            ->where('nama_item', $item_to->nama_item)
-            ->where('id_kategori', $item_to->id_kategori)
-            ->where('id_kasir', $item_from->id_kasir)
-            ->first();
+        if ($item_type) $item_type = DB::table('pos_product_item_type')->where('id_type', $item_type['id'])->where('id_item', $request->id)->first();
 
-        // return json_encode($item_to);
-        if ($checkitem != null && $checkitem->id != $request->id_item) {
-            DB::table('pos_revisi_bayar')
-                ->where('id', $checkitem->id)
-                ->update(
-                    [
-                        'qty' => $request->qty_item + $checkitem->qty,
-                        'total' => ($item_to->harga_jual * $request->qty_item) + $checkitem->total
-                    ]
-                );
+        $pajak_thirdparty = isset($item_to->pajak_thirdparty) ? $item_to->pajak_thirdparty : 0;
+        $thirdparty = $item_to->thirdparty - $pajak_thirdparty;
+        
+        $type_order = $pos_belum->type_order;
 
-            DB::table('pos_revisi_bayar')
-                ->where('id', $request->id_item)
-                ->delete();
-        } else {
-            DB::table('pos_revisi_bayar')
-                ->where('id', $request->id_item)
-                ->update(
-                    [
-                        'nama_item' => $item_to->nama_item, 'harga' => $item_to->harga_jual,
-                        'qty' => $request->qty_item, 'total' => ($item_to->harga_jual * $request->qty_item)
-                    ]
-                );
+        $harga = $type_order == 1 ? $thirdparty : $item_to->harga;
+
+        $pajak = $type_order == 1 ? $pajak_thirdparty : $item_to->pajak;
+
+        if ($item_type) {
+            $harga = $type_order == 1 ? $item_type->harga_thirdparty : $item_type->harga;
+            $pajak = $type_order == 1 ? $item_type->pajak_thirdparty : $item_type->pajak;
         }
+        if ($item_size) {
+            // $harga += $item_size['harga'];
+        }
+
+        foreach ($additional_menu as $additional) {
+            $harga += $additional['harga'];
+        }
+
+        foreach ($opsi_menu as $key => $menu) {
+            if ($menu['item_type']) {
+                // $harga += $menu['item_type']['harga'];
+            }
+            if ($menu['item_size']) {
+                // $harga += $menu['item_size']['harga'];
+            }
+            if (isset($menu['additional_menu'])) {
+                foreach ($menu['additional_menu'] as $additional) {
+                    $harga += $additional['harga'];
+                }
+            }
+        }
+        $additional_menu = collect($additional_menu)->sortBy('id')->values();
+
+        $opsi_menu = collect($opsi_menu)->sortBy('id')->sortBy('item_type')->values();
+        $opsi_menu = $opsi_menu->map( function ($item, $key) use ($request) {
+            $item['qty'] = $request->qty_item;
+            $item['nama_item_lama'] = $item['nama_item'];
+            $nama_item_service = new GetAdditionalTextService($item['nama_item'], $item['item_type'], $item['item_size']);
+            $item['nama_item'] = "$nama_item_service";
+            if (isset($item['additional_menu'])) {
+                $item_additional_menu = collect($item['additional_menu'])->sortBy('id')->values();
+                $item['additional_menu'] = $item_additional_menu;
+            }
+            return $item;
+        });
+
+        $total = $harga + $pajak;
+
+        $opsi_menu = count($opsi_menu) > 0 ? json_encode($opsi_menu) : null;
+        $additional_menu = count($additional_menu) > 0 ? json_encode($additional_menu) : null;
+        $item_type = !is_null($item_type) ? json_encode($item_type) : null;
+        $item_size = !is_null($item_size) ? json_encode($item_size) : null;
+        $response = [
+            'create' => null,
+            'update' => null
+        ];
+        if ($pos_revisi_bayar->id_item == $item_to->id_item) {
+            DB::table('pos_revisi_bayar')
+                ->where('id', $request->id_pos_revisi_bayar)
+                ->update([
+                    'nama_item' => $item_to->nama_item,
+                    'id_item' => $item_to->id_item,
+                    'id_kategori' => $item_to->id_kategori,
+                    'id_store' => $item_to->id_store,
+                    'id_kasir' => $pos_belum->id_kasir,
+                    'harga' => $harga,
+                    'qty' => $request->qty_item,
+                    'total' => ($total * $request->qty_item),
+                    'pajak' => $pajak,
+                    'kode_temp' => $request->kode_temp,
+                    'item_size' => $item_size,
+                    'item_type' => $item_type,
+                    'opsi_menu' => $opsi_menu,
+                    'additional_menu' => $additional_menu
+                ]);
+            $response['update'] = $request->all();
+        } else {
+            if ($qty_pos_revisi_bayar > $qty_item) {
+                $qty_revisi = $pos_revisi_bayar->qty - $request->qty_item;
+                $pajak_revisi = $pos_revisi_bayar->pajak * $qty_revisi;
+                $total_revisi = ($pos_revisi_bayar->harga * $qty_revisi) + $pajak_revisi;
+                DB::table('pos_revisi_bayar')
+                    ->where('id', $request->id_pos_revisi_bayar)
+                    ->update([
+                        'qty' => $qty_revisi,
+                        'total' => $total_revisi
+                    ]);
+                DB::table('pos_revisi_bayar')->insert([
+                    'nama_item' => $item_to->nama_item,
+                    'id_item' => $item_to->id_item,
+                    'id_kategori' => $item_to->id_kategori,
+                    'id_store' => $item_to->id_store,
+                    'id_kasir' => $pos_belum->id_kasir,
+                    'harga' => $harga,
+                    'qty' => $request->qty_item,
+                    'total' => ($total * $request->qty_item),
+                    'pajak' => $pajak,
+                    'kode_temp' => $request->kode_temp,
+                    'item_size' => $item_size,
+                    'item_type' => $item_type,
+                    'opsi_menu' => $opsi_menu,
+                    'additional_menu' => $additional_menu
+                ]);
+                $response['update'] = (array)DB::table('pos_revisi_bayar')
+                    ->where('id', $request->id_pos_revisi_bayar)->first();
+                $response['create'] = $request->all();
+            } else {
+                DB::table('pos_revisi_bayar')
+                    ->where('id', $request->id_pos_revisi_bayar)
+                    ->update([
+                        'nama_item' => $item_to->nama_item,
+                        'id_item' => $item_to->id_item,
+                        'id_kategori' => $item_to->id_kategori,
+                        'id_store' => $item_to->id_store,
+                        'id_kasir' => $pos_belum->id_kasir,
+                        'harga' => $harga,
+                        'qty' => $request->qty_item,
+                        'total' => ($total * $request->qty_item),
+                        'pajak' => $pajak,
+                        'kode_temp' => $request->kode_temp,
+                        'item_size' => $item_size,
+                        'item_type' => $item_type,
+                        'opsi_menu' => $opsi_menu,
+                        'additional_menu' => $additional_menu
+                    ]);
+                $response['update'] = $request->all();
+            }
+        }
+            
+        return response()->json($response);
     }
 
     public function add_edit_item_order(Request $request)
     {
+        DB::beginTransaction();
+        $opsi_menu = $request->input('opsi_menu') ?: [];
+        $item_type = $request->input('item_type') ?: null;
+        $item_size = $request->input('item_size') ?: null;
+        $additional_menu = $request->input('additional_menu') ?: [];
+        if ($item_type) $item_type = DB::table('pos_product_item_type')->where('id_type', $item_type['id'])->where('id_item', $request->id)->first();
         $item_from = DB::table('pos_belum')
             ->where('kode_temp', $request->kode_temp)
             ->first();
 
         $item_to = DB::table('pos_product_item')
-            ->where('id_item', $request->id_item)
+            ->where('id_item', $request->id)
             ->first();
 
+        $additional_menu = collect($additional_menu)->sortBy('id')->values();
+
+        $opsi_menu = collect($opsi_menu)->sortBy('id')->sortBy('item_type')->values();
+        $getDataOpsiMenu = new SetEditOrderOpsiMenu($opsi_menu);
+        $opsi_menu = $getDataOpsiMenu->getOpsiMenu2();
         $checkitem = DB::table('pos_revisi_bayar')
             ->where('nama_item', $item_to->nama_item)
             ->where('id_kategori', $item_to->id_kategori)
             ->where('id_kasir', $item_from->id_kasir)
+            ->where('opsi_menu', count($opsi_menu) > 0 ? json_encode($opsi_menu) : null)
+            ->where('additional_menu', count($additional_menu) > 0 ? json_encode($additional_menu) : null)
+            ->where('item_type', !is_null($item_type) ? json_encode($item_type) : null)
+            ->where('item_size', !is_null($item_size) ? json_encode($item_size) : null)
             ->first();
-
-        // return json_encode($request->all());
+        $response = $request->all();
         if ($checkitem != null) {
+            $qty = $request->qty_item + $checkitem->qty;
+            $total = $checkitem->total * $qty;
             DB::table('pos_revisi_bayar')
                 ->where('id', $checkitem->id)
                 ->update(
                     [
-                        'qty' => $request->qty_item + $checkitem->qty,
-                        'total' => ($item_to->harga_jual * $request->qty_item) + $checkitem->total
+                        'qty' => $qty,
+                        'total' => $total
                     ]
                 );
+            DB::commit();
+            $response['id_pos_revisi_bayar'] = $checkitem->id;
         } else {
-            // return json_encode("add");
-            DB::table('pos_revisi_bayar')
-                ->insert([
-                    [
-                        'id' => null,
-                        'nama_item' => $item_to->nama_item,
-                        'id_kategori' => $item_to->id_kategori,
-                        'id_store' => $item_to->id_store,
-                        'id_kasir' => $item_from->id_kasir,
-                        'harga' => $item_to->harga_jual,
-                        'qty' => $request->qty_item,
-                        'total' => ($item_to->harga_jual * $request->qty_item),
-                        'kode_temp' => $request->kode_temp
-                    ]
-                ]);
+            $pajak_thirdparty = isset($item_to->pajak_thirdparty) ? $item_to->pajak_thirdparty : 0;
+            $thirdparty = $item_to->thirdparty - $pajak_thirdparty;
+            
+            $type_order = $item_from->type_order;
+
+            $harga = $type_order == 1 ? $thirdparty : $item_to->harga;
+
+            $pajak = $type_order == 1 ? $pajak_thirdparty : $item_to->pajak;
+            
+            if ($item_type) {
+                $harga = $type_order == 1 ? $item_type->harga_thirdparty : $item_type->harga;
+                $pajak = $type_order == 1 ? $item_type->pajak_thirdparty : $item_type->pajak;
+            }
+            if ($item_size) {
+                // $harga += $item_size['harga'];
+            }
+            
+            foreach ($additional_menu as $additional) {
+                $harga += $additional['harga'];
+            }
+    
+            foreach ($opsi_menu as $key => $menu) {
+                if (is_object($menu)) $menu = (array)$menu;
+                if ($menu['item_type']) {
+                    // $harga += $menu['item_type']['harga'];
+                }
+                if ($menu['item_size']) {
+                    // $harga += $menu['item_size']['harga'];
+                }
+                if (isset($menu['additional_menu'])) {
+                    foreach ($menu['additional_menu'] as $additional) {
+                        $harga += $additional['harga'];
+                    }
+                }
+            }
+
+            $total = $harga + $pajak;
+            $opsi_menu = count($opsi_menu) > 0 ? json_encode($opsi_menu) : null;
+            $additional_menu = count($additional_menu) > 0 ? json_encode($additional_menu) : null;
+            $item_type = !is_null($item_type) ? json_encode($item_type) : null;
+            $item_size = !is_null($item_size) ? json_encode($item_size) : null;
+            $input = [
+                'id' => null,
+                'nama_item' => $item_to->nama_item,
+                'id_kategori' => $item_to->id_kategori,
+                'id_store' => $item_to->id_store,
+                'id_kasir' => $item_from->id_kasir,
+                'harga' => $harga,
+                'qty' => $request->qty_item,
+                'total' => ($total * $request->qty_item),
+                'pajak' => $pajak,
+                'kode_temp' => $request->kode_temp,
+                'item_size' => $item_size,
+                'item_type' => $item_type,
+                'opsi_menu' => $opsi_menu,
+                'additional_menu' => $additional_menu
+            ];
+
+            $id_pos_revisi_bayar = DB::table('pos_revisi_bayar')->insertGetId($input);
+            $response['id_pos_revisi_bayar'] = $id_pos_revisi_bayar;
+            DB::commit();
         }
+        return json_encode($response);
     }
 
     public function edit_diskon(Request $request)
@@ -590,37 +659,112 @@ class PembayaranController extends Controller
 
     public function create(Request $request)
     {
+        $additional_menu = $request->input('additional_menu') ?: [];
+        $opsi_menu = $request->input('opsi_menu') ?: [];
+        $item_type = $request->input('item_type') ?: null;
+        $item_size = $request->input('item_size') ?: null;
+        $type = $request->input('type');
+        $id = $request->input('id');
+        DB::beginTransaction();
         $tiket = DB::table('pos_product_item')->where('id_item', $request->id)->first();
 
-        $pembayaran = DB::table('pos_front_payment')
-            ->where('nama_tiket', $tiket->nama_item)
-            ->where('id_store', $tiket->id_store)
-            ->where('id_kasir', session('id'))
-            ->get();
+        $harga = $tiket->harga;
+        $pajak = $tiket->pajak;
+        $total = $tiket->harga + $tiket->pajak;
+        $pajak_thirdparty = isset($tiket->pajak_thirdparty) ? $tiket->pajak_thirdparty : 0;
+        $total_thirdparty = $tiket->thirdparty;
+        $thirdparty = $tiket->thirdparty - $pajak_thirdparty;
+        $nama_tiket = $tiket->nama_item;
+        if ($item_type) {
+            $item_type = DB::table('pos_product_item_type')->where('id_type', $item_type['id'])->first();
+            if ($item_type) {
+                $harga = $item_type->harga;
+                $pajak = $item_type->pajak;
+                $total = $item_type->harga_jual;
+                $thirdparty = $item_type->harga_thirdparty;
+                $pajak_thirdparty = $item_type->pajak_thirdparty;
+                $total_thirdparty = $item_type->thirdparty;
+            }
+        }
+        if ($item_size) {
+            // $total += $item_size['harga'];
+            // $total_thirdparty += $item_size['harga'];
+        }
+        foreach ($additional_menu as $additional) {
+            $total += $additional['harga'];
+            $total_thirdparty += $additional['harga'];
+        }
+        
+        foreach ($opsi_menu as $key => $menu) {
+            if (isset($menu['additional_menu'])) {
+                foreach ($menu['additional_menu'] as $additional) {
+                    $total += $additional['harga'];
+                    $total_thirdparty += $additional['harga'];
+                }
+            }
+        }
 
-        if ($pembayaran->count() > 0) {
+        $opsi_menu = collect($opsi_menu)->sortBy('id')->sortBy('item_type')->values();
+        $opsi_menu = $opsi_menu->map( function ($item, $key) {
+            if (isset($item['additional_menu'])) {
+                $item_additional_menu = collect($item['additional_menu'])->sortBy('id')->values();
+                $item['additional_menu'] = $item_additional_menu;
+            }
+            return $item;
+        });
+        
+        $additional_menu = collect($additional_menu)->sortBy('id')->values();
+        $pembayaran = DB::table('pos_front_payment')
+        ->where('nama_tiket', $nama_tiket)
+        ->where('id_store', $tiket->id_store)
+        ->where('id_kasir', session('id'))
+        ->where('opsi_menu', count($opsi_menu) > 0 ? json_encode($opsi_menu) : null)
+        ->where('additional_menu', count($additional_menu) > 0 ? json_encode($additional_menu) : null)
+        ->where('item_type', !is_null($item_type) ? json_encode($item_type) : null)
+        ->where('item_size', !is_null($item_size) ? json_encode($item_size) : null)
+        ->first();
+        
+        if ($pembayaran) {
+            $qty = ($pembayaran->qty + 1);
+            $total = ($pembayaran->qty + 1) * ($pembayaran->total / $pembayaran->qty);
+            $thirdparty = ($pembayaran->qty + 1) * ($pembayaran->subthirdparty / $pembayaran->qty);
+            $pajak = ($pembayaran->qty + 1) * $pajak;
+            $pajak_thirdparty = ($pembayaran->qty + 1) * $pajak_thirdparty;
 
             DB::table('pos_front_payment')
-                ->where('nama_tiket', $tiket->nama_item)
+                ->where('id', $pembayaran->id)
                 ->where('id_store', $tiket->id_store)
                 ->where('id_kasir', session('id'))
-                ->update(['qty' => ($pembayaran->first()->qty + 1), 'total' => ($pembayaran->first()->qty + 1) * $tiket->harga_jual,'subthirdparty' => ($pembayaran->first()->qty + 1) * $tiket->thirdparty,'subpajak' => ($pembayaran->first()->qty + 1) * $tiket->thirdparty]);
-
+                ->update([
+                    'qty' => $qty,
+                    'total' => $total,
+                    'subthirdparty' => $thirdparty,
+                    'subpajak' => $pajak,
+                    'subpajak_thirdparty' => $pajak_thirdparty
+                ]);
+            DB::commit();
             return json_encode("update");
         } else {
-            DB::table('pos_front_payment')->insert([
-                [
-                    'nama_tiket' => $tiket->nama_item,
-                    'id_kategori' => $tiket->id_kategori,
-                    'id_store' => $tiket->id_store,
-                    'harga' => $tiket->harga_jual,
-                    'subthirdparty' => $tiket->thirdparty,
-                    'subpajak' => $tiket->pajak,
-                    'qty' => 1,
-                    'total' => $tiket->harga_jual,
-                    'id_kasir' => session('id'),
-                ]
-            ]);
+            $input = [
+                'nama_tiket' => $nama_tiket,
+                'id_item' => $tiket->id_item,
+                'id_kategori' => $tiket->id_kategori,
+                'id_store' => $tiket->id_store,
+                'qty' => 1,
+                'harga' => $harga,
+                'subpajak' => $pajak,
+                'total' => $total,
+                'subpajak_thirdparty' => $pajak_thirdparty,
+                'thirdparty' => $thirdparty,
+                'subthirdparty' => $total_thirdparty,
+                'id_kasir' => session('id'),
+                'opsi_menu' => count($opsi_menu) > 0 ? json_encode($opsi_menu) : null,
+                'additional_menu' => count($additional_menu) > 0 ? json_encode($additional_menu) : null,
+                'item_type' => !is_null($item_type) ? json_encode($item_type) : null,
+                'item_size' => !is_null($item_size) ? json_encode($item_size) : null,
+            ];
+            DB::table('pos_front_payment')->insert($input);
+            DB::commit();
             return json_encode("Add");
         }
     }
@@ -660,17 +804,17 @@ class PembayaranController extends Controller
 
     public function load_diskon()
     {
-    ?>
+        ?>
         <td class="nama-barang" id="nama-diskon"><i class="fas fa-cut"></i> Diskon <?= session('nama_diskon') ?>
-            <?php
+        <?php
             if (session('id_diskon')) {
-            ?>
+                ?>
                 &nbsp; &nbsp; &nbsp; <i class="fas fa-times-circle" id="hapus-diskon"></i></td>
-    <?php
+                <?php
             }
-    ?>
+            ?>
     <td class="harga" id="total-diskon">Rp <span>- <?= number_format(session('jumlah_diskon'), 0, ",", ".") ?></span></td>
-<?php
+    <?php
     }
 
     public function del_diskon(Request $request)
@@ -682,6 +826,7 @@ class PembayaranController extends Controller
 
     public function del_order($kode_temp)
     {
+        DB::beginTransaction();
         $belum_bayar = DB::table('pos_belum')
             ->where('kode_temp', $kode_temp)
             ->first();
@@ -706,54 +851,52 @@ class PembayaranController extends Controller
             $type_or = "Dine In";
         }
 
+        $print_items = [];
+
         $dataitem = DB::table('pos_belum_bayar')
             ->where('kode_temp', $kode_temp)
             ->get();
-
-        // // Mencari kategori yang ada IP nya untuk di print
-        $n = 0;
-        $array[$n] = array('id_kategori' => null);
-        foreach ($dataitem as $key => $value) {
-            // return $value->nama_kategori;
-            if ($array[$n]['id_kategori'] == null) {
-                $start = $value->id_kategori;
-                $array[$n] = array('id_kategori' => $value->id_kategori);
-            } elseif ($value->id_kategori != $array[$n]['id_kategori']) {
-                array_push($array, array('id_kategori' => $value->id_kategori));
-                $n++;
+        $dataitem = new GetDataPembayaranService($dataitem);
+        $dataitem->setDataOrder();
+        $dataitem = $dataitem->data;
+        foreach ($dataitem as $item) {
+            if (count($item->opsi_menu) > 0) {
+                foreach ($item->opsi_menu as $menu_item) {
+                    array_push($print_items, $menu_item);
+                }
+            } else {
+                array_push($print_items, $item);
             }
         }
-
-        // Print By Kategori
-        foreach ($array as $ar) {
-            $ip_printer = DB::table('pos_product_kategori')
-                ->where('id_kategori', $ar['id_kategori'])
-                ->get();
-
-            if ($ip_printer[0]->ip_printer1 != null) {
-                // self::print($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::no_test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer2 != null) {
-                // self::print_2($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::no_test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer3 != null) {
-                // self::print3($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::no_test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
+        $printers = DB::table('pos_product_kategori')->get();
+        foreach ($printers as $printer) {
+            $data = collect($print_items)->where('id_kategori', $printer->id_kategori)->values();
+            if (count($data) > 0) {
+                $printer_service = new DoPrintDeleteOrderService($data, $printer, $kode_temp, $type_or, $keterangan_order);
+                if ($printer->ip_printer1 != null) {
+                    $printer_service->print($printer->ip_printer1);
+                }
+                if ($printer->ip_printer2 != null) {
+                    $printer_service->print($printer->ip_printer2);
+                }
+                if ($printer->ip_printer3 != null) {
+                    $printer_service->print($printer->ip_printer3);
+                }
             }
         }
-
         DB::table('pos_belum_bayar')
             ->where('kode_temp', $kode_temp)
             ->delete();
         DB::table('pos_belum')
             ->where('kode_temp', $kode_temp)
             ->delete();
+        DB::commit();
+        return response()->json($print_items);
     }
 
     public function activity(Request $request)
     {
+        DB::beginTransaction();
         date_default_timezone_set('Asia/Jakarta');
         $tanggal = date('Y-m-d');
         $times = date('H:i:s');
@@ -773,13 +916,18 @@ class PembayaranController extends Controller
             ->where('kode_temp', $request->kode_order)
             ->first();
 
-        $id_diskon = $rowitem->id_discount;
+        $id_diskon = $request->voucher_id;
+        $jumlah_diskon = 0;
+        if ($id_diskon) {
+            $diskon = DB::table('pos_diskon')->where('id_voucher', $id_diskon)->first();
+            if ($diskon) $jumlah_diskon = $diskon->nominal;
+        }
         $subtotal = $rowitem->subtotal;
-        $total = $rowitem->total;
+        $total = $rowitem->total - $jumlah_diskon;
         $type_order = $rowitem->type_order;
         $keterangan_order = $rowitem->keterangan_order;
         $tipe_pembayaran = $request->tipe_pembayaran;
-        $is_split = $request->is_split;
+        $is_split = isset($request->is_split) ? $request->is_split : 0;
         $no_rek = $request->no_rek;
         $debit_cash = $request->debit_cash;
         $cash = $request->cash;
@@ -798,63 +946,32 @@ class PembayaranController extends Controller
         if ($tipe_pembayaran != 'Tunai') {
             $cash = $cash_split;
         }
-
-        DB::table('pos_activity')->insert([
-            [
-                'id_activity' => null, 'no_invoice' => $no_invoice, 'id_store' => $id_store,
-                'id_employee' => $id_kasir, 'id_discount' => $id_diskon, 'subtotal' => $subtotal,
-                'total' => $total, 'tipe_payment' => $tipe_pembayaran,
-                'is_split' => $is_split, 'no_rek' => $no_rek, 'debit_cash' => $debit_cash, 'cash' => $cash,
-                'kembalian' => $kembalian, 'tanggal' => $tanggal, 'time' => $times, 'status' => 'success',
-                'type_order' => $type_order, 'keterangan_order' => $keterangan_order
-            ]
-        ]);
+        $data_activity = [
+            'id_activity' => null, 'no_invoice' => $no_invoice, 'id_store' => $id_store,
+            'id_employee' => $id_kasir, 'id_discount' => $id_diskon, 'subtotal' => $subtotal,
+            'total' => $total, 'tipe_payment' => $tipe_pembayaran,
+            'is_split' => $is_split, 'no_rek' => $no_rek, 'debit_cash' => $debit_cash, 'cash' => $cash,
+            'kembalian' => $kembalian, 'tanggal' => $tanggal, 'time' => $times, 'status' => 'success',
+            'type_order' => $type_order, 'keterangan_order' => $keterangan_order, 'pajak' => $rowitem->pajak
+        ];
+        DB::table('pos_activity')->insert($data_activity);
+        $data_activity_item = [];
         foreach ($dataitem as $key => $value) {
-            DB::table('pos_activity_item')->insert([
-                [
-                    'id' => null, 'no_invoice' => $no_invoice, 'nama_item' => $value->nama_item,
-                    'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $id_kasir, 'harga' => $value->harga,
-                    'qty' => $value->qty, 'total' => $value->total, 'created_at' => $tanggal . ' ' . $times, 'status' => 'success'
-                ]
+            array_push($data_activity_item, [
+                'id' => null, 'no_invoice' => $no_invoice, 'nama_item' => $value->nama_item,
+                'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $id_kasir, 'harga' => $value->harga,
+                'qty' => $value->qty, 'total' => $value->total, 'created_at' => $tanggal . ' ' . $times, 'status' => 'success',
+                'opsi_menu' => $value->opsi_menu, 'additional_menu' => $value->additional_menu,
+                'item_type' => $value->item_type, 'item_size' => $value->item_size, 'pajak' => $value->pajak
             ]);
         }
+        DB::table('pos_activity_item')->insert($data_activity_item);
 
-        // Mencari kategori yang ada IP nya untuk di print
-        // $n = 0;
-        // $array[$n] = array('id_kategori' => null);
-        // foreach($dataitem as $key=>$value){
-        //     // return $value->nama_kategori;
-        //     if($array[$n]['id_kategori']==null){
-        //         $start = $value->id_kategori;
-        //         $array[$n] = array('id_kategori'=>$value->id_kategori);
-        //     }elseif($value->id_kategori != $array[$n]['id_kategori']){
-        //         array_push($array, array('id_kategori'=>$value->id_kategori));
-        //         $n++;
-        //     }
-        // }
-
-        // Print By Kategori
-        // foreach($array as $ar){
-        //     $ip_printer = DB::table('pos_product_kategori')
-        //             ->where('id_kategori', $ar['id_kategori'])
-        //             ->get();
-
-        //     if($ip_printer[0]->ip_printer1 != null){
-        //         // self::print($ar['id_kategori'], $no_invoice);
-        //         self::test_printer_dapur($ar['id_kategori'], $no_invoice, $request->kode_order);
-        //     }
-        //     if($ip_printer[0]->ip_printer2 != null){
-        //         // self::print_2($ar['id_kategori'], $no_invoice);
-        //         self::test_printer_dapur($ar['id_kategori'], $no_invoice, $request->kode_order);
-        //     }
-        //     if($ip_printer[0]->ip_printer3 != null){
-        //         // self::print3($ar['id_kategori'], $no_invoice);
-        //         self::test_printer_dapur($ar['id_kategori'], $no_invoice, $request->kode_order);
-        //     }
-        // }
-
+        $data_pembayaran = new GetDataPembayaranService($dataitem);
+        $data_pembayaran->setDataOrder();
         // // Print langsung dari PC
-        self::print_con($no_invoice, $cash, $tipe_pembayaran, $debit_cash, $kembalian, $is_split, $type_or, $keterangan_order, $request->kode_order, $id_diskon);
+        $print_service = new DoPrintPCService($data_pembayaran);
+        $print_service->print($no_invoice, $cash, $tipe_pembayaran, $debit_cash, $kembalian, $is_split, $type_or, $keterangan_order, $request->kode_order, $id_diskon);
 
         session()->forget(['id_diskon', 'jumlah_diskon', 'nama_diskon']);
         DB::table('pos_belum_bayar')
@@ -871,10 +988,13 @@ class PembayaranController extends Controller
                     'status' => 0
                 ]);
         }
+        DB::commit();
+        return true;
     }
 
     public function order(Request $request)
     {
+        DB::beginTransaction();
         date_default_timezone_set('Asia/Jakarta');
         // echo json_encode($request->all());  
         $id_store = session('id_store');
@@ -923,10 +1043,16 @@ class PembayaranController extends Controller
             ->where('id_store', $id_store)
             ->where('id_kasir', $id_kasir)
             ->get();
-
-        $subtotal = $request->subtotal;
-        $thirdparty = $request->thirdparty;
-        $total = $request->total_bayar;
+        
+        $data_pembayaran = new GetDataPembayaranService($dataitem);
+        $data_pembayaran->setData();
+        $sub_total = $data_pembayaran->sub_total;
+        $sub_total_thirdparty = $data_pembayaran->sub_total_thirdparty;
+        $total = $data_pembayaran->total;
+        $thirdparty = $data_pembayaran->thirdparty;
+        $pajak = $data_pembayaran->pajak;
+        $pajak_thirdparty = $data_pembayaran->pajak_thirdparty;
+        $pembayaran = $data_pembayaran->data;
         $type_order = $request->type_order;
         $meja_choose = $request->meja_choose;
         $keterangan_order = $request->keterangan_order;
@@ -946,86 +1072,103 @@ class PembayaranController extends Controller
                     'status' => 1
                 ]);
         }
-
-        if($type_order == 1){
-            DB::table('pos_belum')->insert([
-                [
-                    'id' => null, 'kode_temp' => $kode_temp, 'id_store' => $id_store,
-                    'id_kasir' => $id_kasir, 'id_discount' => $id_diskon, 'subtotal' => $thirdparty,
-                    'total' => $thirdparty, 'tanggal' => date('Y-m-d'), 'type_order' => $type_order,
-                    'keterangan_order' => $keterangan_order, 'note' => $request->note
-                ]
-            ]);
-        }else{
-            DB::table('pos_belum')->insert([
-                [
-                    'id' => null, 'kode_temp' => $kode_temp, 'id_store' => $id_store,
-                    'id_kasir' => $id_kasir, 'id_discount' => $id_diskon, 'subtotal' => $subtotal,
-                    'total' => $total, 'tanggal' => date('Y-m-d'), 'type_order' => $type_order,
-                    'keterangan_order' => $keterangan_order, 'note' => $request->note
-                ]
-            ]);
+        $data_pos_belum = [
+            'id' => null,
+            'kode_temp' => $kode_temp,
+            'id_store' => $id_store,
+            'id_kasir' => $id_kasir,
+            'id_discount' => $id_diskon,
+            'subtotal' => $type_order == 1 ? $sub_total_thirdparty : $sub_total,
+            'total' => $type_order == 1 ? $thirdparty : $total,
+            'pajak' => $type_order == 1 ? $pajak_thirdparty : $pajak,
+            'tanggal' => date('Y-m-d'),
+            'type_order' => $type_order,
+            'keterangan_order' => $keterangan_order,
+            'note' => $request->note
+        ];
+        DB::table('pos_belum')->insert($data_pos_belum);
+        $data_pos_belum_bayar = [];
+        $index = 0;
+        while ($index < count($pembayaran)) {
+            $item = $pembayaran[$index];
+            $harga_item = 0;
+            $total_harga_item = 0;
+            foreach ($item->additional_menu as $additional_menu) {
+                $harga_item += $additional_menu->harga;
+            }
+            foreach ($item->opsi_menu as $opsi_menu) {
+                // $opsi_menu->qty = $item->qty;
+                if (isset($opsi_menu->additional_menu)) {
+                    foreach ($opsi_menu->additional_menu as $additional_menu) {
+                        $harga_item += $additional_menu->harga;
+                    }
+                }
+            }
+            if ($type_order == 1) {
+                $harga_item += $item->thirdparty;
+                $total_harga_item += (($harga_item * $item->qty) + $item->subpajak_thirdparty);
+            } else {
+                $harga_item += $item->harga;
+                $total_harga_item += (($harga_item * $item->qty) + $item->subpajak);
+            }
+            $pos_belum_bayar = [
+                'id' => null,
+                'kode_temp' => $kode_temp,
+                'nama_item' => $item->nama_item_lama,
+                'id_item' => $item->id_item,
+                'id_kategori' => $item->id_kategori,
+                'id_store' => $item->id_store,
+                'id_kasir' => $id_kasir,
+                'harga' => $harga_item,
+                'qty' => $item->qty,
+                'total' => $total_harga_item,
+                'additional_menu' => count($item->additional_menu) > 0 ? json_encode($item->additional_menu) : null,
+                'opsi_menu' => count($item->opsi_menu) > 0 ? json_encode($item->opsi_menu) : null,
+                'id_paket' => $item->id_paket,
+                'item_type' => is_null($item->item_type) ? null : json_encode($item->item_type),
+                'item_size' => is_null($item->item_size) ? null : json_encode($item->item_size),
+                'pajak' => ($type_order == 1 ? $item->subpajak_thirdparty : $item->subpajak) / $item->qty
+            ];
+            array_push($data_pos_belum_bayar, $pos_belum_bayar);
+            $index += 1;
         }
-
+        DB::table('pos_belum_bayar')->insert($data_pos_belum_bayar);
 
         foreach ($dataitem as $key => $value) {
-             if($type_order == 1){
-                $third = $value->subthirdparty/$value->qty;
-                $subthird = $third * $value->qty;
-                 DB::table('pos_belum_bayar')->insert([
-                [
-                    'id' => null, 'kode_temp' => $kode_temp, 'nama_item' => $value->nama_tiket,
-                    'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $id_kasir, 'harga' => $third,
-                    'qty' => $value->qty, 'total' => $subthird
-                ]
-            ]);
-             }else{
-                DB::table('pos_belum_bayar')->insert([
-                    [
-                        'id' => null, 'kode_temp' => $kode_temp, 'nama_item' => $value->nama_tiket,
-                        'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $id_kasir, 'harga' => $value->harga,
-                        'qty' => $value->qty, 'total' => $value->total
-                    ]
-                ]);
+            foreach ($value->opsi_menu as $opsi_menu) {
+                $opsi_menu->qty = $value->qty;
+                $dataitem->push($opsi_menu);
+            }
+        }
+        $dataitem = $dataitem->filter( function ( $item, $key ) {
+            return $item->is_paket == 0;
+        })->values();
+        
+        $duplicates_item = collect($dataitem)->duplicates('order_id');
+        foreach ($duplicates_item as $key => $duplicate) {
+            $qty = $dataitem[$key]->qty;
+            $dataitem = $dataitem->filter( function ($item, $index) use ($key, $duplicate, $qty) {
+                if ($item->order_id == $duplicate) {
+                    $item->qty += $qty;
+                }
+                return $index != $key;
+            });
+        }
+        $id_kategori = $dataitem->pluck('id_kategori')->unique()->values();
+        $printers = DB::table('pos_product_kategori')->whereIn('id_kategori', $id_kategori)->get();
+        foreach ($printers as $printer) {
+            $printer_service = new DoPrintDapurService($dataitem, $printer, $kode_temp, $type_or, $keterangan_order, $request->note);
+            if ($printer->ip_printer1 != null) {
+                $printer_service->print($printer->ip_printer1);
+            }
+            if ($printer->ip_printer2 != null) {
+                $printer_service->print($printer->ip_printer2);
+            }
+            if ($printer->ip_printer3 != null) {
+                $printer_service->print($printer->ip_printer3);
             }
         }
 
-        // // Mencari kategori yang ada IP nya untuk di print
-        $n = 0;
-        $array[$n] = array('id_kategori' => null);
-        foreach ($dataitem as $key => $value) {
-            // return $value->nama_kategori;
-            if ($array[$n]['id_kategori'] == null) {
-                $start = $value->id_kategori;
-                $array[$n] = array('id_kategori' => $value->id_kategori);
-            } elseif ($value->id_kategori != $array[$n]['id_kategori']) {
-                array_push($array, array('id_kategori' => $value->id_kategori));
-                $n++;
-            }
-        }
-
-        // Print By Kategori
-        foreach ($array as $ar) {
-            $ip_printer = DB::table('pos_product_kategori')
-                ->where('id_kategori', $ar['id_kategori'])
-                ->get();
-
-            if ($ip_printer[0]->ip_printer1 != null) {
-                self::print($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                // self::test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer2 != null) {
-                self::print_2($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                // self::test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer3 != null) {
-                self::print3($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                // self::test_print_dapur($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-        }
-
-        // // Print langsung dari PC
-        // // self::print_con($no_invoice, $cash, $tipe_pembayaran, $debit_cash, $kembalian, $is_split);
         DB::table('pos_front_payment')
             ->where('id_store', $id_store)
             ->where('id_kasir', $id_kasir)
@@ -1035,47 +1178,24 @@ class PembayaranController extends Controller
             ->update([
                 'nominal' => null
             ]);
+        DB::commit();
         session()->forget(['id_diskon', 'jumlah_diskon', 'nama_diskon']);
+        return true;
     }
 
     public function edit_order(Request $request)
     {
+        DB::beginTransaction();
         date_default_timezone_set('Asia/Jakarta');
-        // echo json_encode($request->all());  
-
 
         $kode_temp = $request->kode_temp;
+        $create_data = isset($request->data['createData']) ? $request->data['createData'] : [];
+        $update_data = isset($request->data['updateData']) ? $request->data['updateData'] : [];
+        $delete_data = isset($request->data['deleteData']) ? $request->data['deleteData'] : [];
 
         $rowitem = DB::table('pos_belum')
             ->where('kode_temp', $kode_temp)
             ->first();
-
-        $dataitem = DB::table('pos_belum_bayar')
-            ->where('kode_temp', $kode_temp)
-            ->get();
-
-        $datarevisi = DB::table('pos_revisi_bayar')
-            ->where('kode_temp', $kode_temp)
-            ->get();
-
-        $id_store = $rowitem->id_store;
-        $id_kasir = $rowitem->id_kasir;
-        $id_diskon = $rowitem->id_discount;
-
-        $jum_dataitem = DB::select("SELECT id_kategori FROM `pos_belum_bayar` WHERE kode_temp ='" . $kode_temp . "' GROUP BY id_kategori");
-        $jum_datarevisi = DB::select("SELECT id_kategori FROM `pos_revisi_bayar` WHERE kode_temp ='" . $kode_temp . "' GROUP BY id_kategori");
-        $num_di = 0;
-        foreach ($jum_dataitem as $key => $value) {
-            $num_di++;
-        }
-
-        $num_dr = 0;
-        foreach ($jum_datarevisi as $key => $value) {
-            $num_dr++;
-        }
-
-        $subtotal = $request->subtotal;
-        $total = $request->total;
 
         $type_order = $rowitem->type_order;
         $keterangan_order = $rowitem->keterangan_order;
@@ -1089,79 +1209,216 @@ class PembayaranController extends Controller
             $type_or = "Dine In";
         }
 
-        // // Mencari kategori yang ada IP nya untuk di print
-        $n = 0;
-        if ($num_di >= $num_dr) {
-            $array[$n] = array('id_kategori' => null);
-            foreach ($dataitem as $key => $value) {
-                // return $value->nama_kategori;
-                if ($array[$n]['id_kategori'] == null) {
-                    $start = $value->id_kategori;
-                    $array[$n] = array('id_kategori' => $value->id_kategori);
-                } elseif ($value->id_kategori != $array[$n]['id_kategori']) {
-                    array_push($array, array('id_kategori' => $value->id_kategori));
-                    $n++;
+        $datarevisi = DB::table('pos_revisi_bayar')
+            ->where('kode_temp', $kode_temp)
+            ->get();
+
+        $data_need_to_update = [];
+        $data_need_to_delete = [];
+        $data_need_to_add = [];
+        foreach ($delete_data as $index => $data) {
+            if (!isset($data['additional_menu'])) $data['additional_menu'] = [];
+            $data['additional_menu'] = collect($data['additional_menu'])->sortBy('id')->values();
+            if (!isset($data['opsi_menu'])) $data['opsi_menu'] = [];
+            $data['nama_item_lama'] = $data['nama_item'];
+            $nama_item = new GetAdditionalTextService($data['nama_item'], $data['item_type'], $data['item_size']);
+            $data['nama_item'] = "$nama_item";
+            $opsi_menu = new SetEditOrderOpsiMenu($data['opsi_menu'], $data);
+            $data['opsi_menu'] = $opsi_menu->getOpsiMenu();
+            if (count($data['opsi_menu']) > 0) {
+                foreach ($data['opsi_menu'] as $opsi_menu) {
+                    array_push($data_need_to_delete, (object)$opsi_menu);
                 }
+            } else {
+                array_push($data_need_to_delete, (object)$data);
             }
-        } else {
-            $array[$n] = array('id_kategori' => null);
-            foreach ($datarevisi as $key => $value) {
-                // return $value->nama_kategori;
-                if ($array[$n]['id_kategori'] == null) {
-                    $start = $value->id_kategori;
-                    $array[$n] = array('id_kategori' => $value->id_kategori);
-                } elseif ($value->id_kategori != $array[$n]['id_kategori']) {
-                    array_push($array, array('id_kategori' => $value->id_kategori));
-                    $n++;
+        }
+        foreach ($create_data as $index => $data) {
+            if (!isset($data['additional_menu'])) $data['additional_menu'] = [];
+            $data['additional_menu'] = collect($data['additional_menu'])->sortBy('id')->values();
+            if (!isset($data['item_type'])) $data['item_type'] = null;
+            if (!isset($data['item_size'])) $data['item_size'] = null;
+            if (!isset($data['opsi_menu'])) $data['opsi_menu'] = [];
+            if (is_string($data['opsi_menu'])) $data['opsi_menu'] = json_decode($data['opsi_menu']);
+            $data['nama_item_lama'] = isset($data['text']) ? $data['text'] : $data['nama_item'];
+            $nama_item = new GetAdditionalTextService($data['nama_item_lama'], $data['item_type'], $data['item_size']);
+            $data['nama_item'] = "$nama_item";
+            $opsi_menu = new SetEditOrderOpsiMenu($data['opsi_menu'], $data);
+            $data['opsi_menu'] = $opsi_menu->getOpsiMenu();
+            if (count($data['opsi_menu']) > 0) {
+                foreach ($data['opsi_menu'] as $opsi_menu) {
+                    array_push($data_need_to_add, (object)$opsi_menu);
+                }
+            } else {
+                array_push($data_need_to_add, (object)$data);
+            }
+        }
+        foreach ($update_data as $key => $data) {
+            if (!isset($data['text'])) $data['text'] = $data['nama_item'];
+            $data['nama_item'] = $data['text'];
+            $data['nama_item_lama'] = $data['nama_item'];
+            $nama_item = new GetAdditionalTextService($data['nama_item'], $data['item_type'], $data['item_size']);
+            $data['nama_item'] = "$nama_item";
+            if (!isset($data['qty_item'])) $data['qty_item'] = $data['qty'];
+            $data['qty'] = $data['qty_item'];
+            if (!isset($data['additional_menu'])) $data['additional_menu'] = [];
+            $data['additional_menu'] = collect($data['additional_menu'])->sortBy('id')->values();
+            if (!isset($data['opsi_menu']) || !$data['opsi_menu']) $data['opsi_menu'] = [];
+            if (is_string($data['opsi_menu'])) $data['opsi_menu'] = json_decode($data['opsi_menu']);
+            $opsi_menu = new SetEditOrderOpsiMenu($data['opsi_menu'], $data);
+            $data['opsi_menu'] = $opsi_menu->getOpsiMenu();
+            $data = (object)$data;
+            $data_awal = DB::table('pos_belum_bayar')->where('id', $data->id_pos_belum_bayar)->first();
+            if ($data_awal) {
+                $data_awal = new GetDataPembayaranService([$data_awal]);
+                $data_awal->setDataOrder();
+                $data_awal = $data_awal->data[0];
+                $data = new GetDataPembayaranService([$data]);
+                $data->setDataOrder();
+                $data = $data->data[0];
+                $data->nama_item = $data->nama_item_lama;
+                $data_awal->additional_menu = collect($data_awal->additional_menu)->sortBy('id')->values();
+                $data_awal->opsi_menu = collect($data_awal->opsi_menu)->map( function ($opsi) use ($data_awal) {
+                    if (!isset($opsi->additional_menu)) $opsi->additional_menu = [];
+                    $opsi->additional_menu = collect($opsi->additional_menu)->sortBy('id')->values();
+                    return $opsi;
+                })->sortBy('id')->values();
+                if ($data->id_kategori == $data_awal->id_kategori) {
+                    if ((count($data->opsi_menu) == 0) && (count($data_awal->opsi_menu) == 0)) {
+                        $data->data_awal = $data_awal;
+                        if ($data->order_id != $data_awal->order_id) array_push($data_need_to_update, $data);
+                    } else {
+                        $data_awal_opsi_menu = $data_awal->opsi_menu;
+                        $data_opsi_menu = $data->opsi_menu;
+                        if (count($data_opsi_menu) == 0 && count($data_awal_opsi_menu) != 0) {
+                            foreach ($data_awal_opsi_menu as $opsi_menu) {
+                                array_push($data_need_to_delete, $opsi_menu);
+                            }
+                        } else if (count($data_opsi_menu) != 0 && count($data_awal_opsi_menu) == 0) {
+                            foreach ($data_opsi_menu as $opsi_menu) {
+                                array_push($data_need_to_add, (object)$opsi_menu);
+                            }
+                        } else {
+                            $data_opsi_menu = collect($data_opsi_menu)->map(function ($option) {
+                                if (is_array($option)) $option = (object)$option;
+                                if (!$option->id_item) $option->id_item = $option->id;
+                                return $option;
+                            })->values();
+                            // return response()->json([$data_awal_opsi_menu, $data_opsi_menu]);
+                            if ($data->id == $data_awal->id_item) {
+                                foreach ($data_opsi_menu as $index => $opsi_menu) {
+                                    if (is_object($opsi_menu)) $opsi_menu = (array)$opsi_menu;
+                                    $opsi_awal = $data_awal_opsi_menu[$index];
+                                    $item_type = $opsi_awal->item_type != $opsi_menu['item_type'];
+                                    $additional = $opsi_awal->additional_menu != $opsi_menu['additional_menu'];
+                                    $qty = $opsi_awal->qty != $opsi_menu['qty'];
+                                    $condition = $item_type || $additional || $qty;
+                                    if ($condition) {
+                                        if (is_array($opsi_menu)) $opsi_menu = (object)$opsi_menu;
+                                            $opsi_menu->data_awal = $opsi_awal;
+                                        array_push($data_need_to_update, $opsi_menu);
+                                    }
+                                }
+                            } else {
+                                $selected_ids = [];
+                                foreach ($data_awal_opsi_menu as $opsi_menu) {
+                                    $menu_exist = collect($data_opsi_menu)->where('id_item', $opsi_menu->id)->values()->first();
+                                    if ($menu_exist) {
+                                        if (is_array($menu_exist)) $menu_exist = (object)$menu_exist;
+                                        $item_type = $menu_exist->item_type 
+                                        != $opsi_menu->item_type;
+                                        $additional = $menu_exist->additional_menu != $opsi_menu->additional_menu;
+                                        $qty = $menu_exist->qty != $opsi_menu->qty;
+                                        $condition = $item_type || $additional || $qty;
+                                        if ($condition) {
+                                            $menu_exist->data_awal = $opsi_menu;
+                                            array_push($data_need_to_update, $menu_exist);
+                                            array_push($selected_ids, $menu_exist->id_item);
+                                        }
+                                    } else {
+                                        array_push($data_need_to_delete, $opsi_menu);
+                                    }
+                                }
+                                $data_opsi_menu = collect($data_opsi_menu)->whereNotIn('id_item', $selected_ids)->values();
+                                foreach($data_opsi_menu as $opsi_menu) {
+                                    array_push($data_need_to_add, $opsi_menu);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-
-        // Print By Kategori
-        foreach ($array as $ar) {
-            $ip_printer = DB::table('pos_product_kategori')
-                ->where('id_kategori', $ar['id_kategori'])
-                ->get();
-
-            if ($ip_printer[0]->ip_printer1 != null) {
-                // self::print($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::test_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer2 != null) {
-                // self::print_2($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::test_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-            }
-            if ($ip_printer[0]->ip_printer3 != null) {
-                // self::print3($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::test_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
+        $printers = DB::table('pos_product_kategori')->where('is_paket', 0)->get();
+        foreach ($printers as $printer) {
+            $update = collect($data_need_to_update)->where('id_kategori', $printer->id_kategori)->values();
+            $delete = collect($data_need_to_delete)->where('id_kategori', $printer->id_kategori)->values()->toArray();
+            $add = collect($data_need_to_add)->where('id_kategori', $printer->id_kategori)->values();
+            if (count($update) > 0 || count($delete) > 0 || count($add) > 0) {
+                $printer_service = new DoPrintDapurRevisiService($update, $add, $delete, $printer, $kode_temp, $type_or, $keterangan_order);
+                if ($printer->ip_printer1 != null) {
+                    $printer_service->print($printer->ip_printer1);
+                }
+                if ($printer->ip_printer2 != null) {
+                    $printer_service->print($printer->ip_printer2);
+                }
+                if ($printer->ip_printer3 != null) {
+                    $printer_service->print($printer->ip_printer3);
+                }
             }
         }
-
-        // return json_encode($array);
-
-        DB::table('pos_belum')->where('kode_temp', $kode_temp)
-            ->update([
-                'subtotal' => $subtotal,
-                'total' => $total
-            ]);
-
+        $data_pembayaran = new GetDataPembayaranService($datarevisi);
+        $data_pembayaran->setDataOrder();
+        $subtotal = $type_order == 1 ? $data_pembayaran->sub_total_thirdparty : $data_pembayaran->sub_total;
+        $total = $data_pembayaran->total;
+        $pajak = $type_order == 1 ? $data_pembayaran->pajak_thirdparty : $data_pembayaran->pajak;
+        $update = [
+            'subtotal' => $subtotal,
+            'total' => $total,
+            'pajak' => $pajak
+        ];
+        // return response()->json($update);
+        DB::table('pos_belum')->where('kode_temp', $kode_temp)->update($update);
         DB::table('pos_belum_bayar')->where('kode_temp', $kode_temp)
             ->delete();
-
+        $data_pos_belum_bayar = [];
         foreach ($datarevisi as $key => $value) {
-            DB::table('pos_belum_bayar')->insert([
-                [
-                    'id' => null, 'kode_temp' => $kode_temp, 'nama_item' => $value->nama_item,
-                    'id_kategori' => $value->id_kategori, 'id_store' => $value->id_store, 'id_kasir' => $value->id_kasir, 'harga' => $value->harga,
-                    'qty' => $value->qty, 'total' => $value->total
-                ]
+            $harga_item = $value->harga;
+            foreach ($value->additional_menu as $additional_menu) {
+                $harga_item += $additional_menu->harga;
+            }
+            foreach ($value->opsi_menu as $opsi_menu) {
+                if (isset($opsi_menu->additional_menu)) {
+                    foreach ($opsi_menu->additional_menu as $additional_menu) {
+                        $harga_item += $additional_menu->harga;
+                    }
+                }
+            }
+            array_push($data_pos_belum_bayar, [
+                'id' => null,
+                'nama_item' => $value->nama_item_lama,
+                'id_item' => $value->id_item,
+                'id_kategori' => $value->id_kategori,
+                'id_store' => $value->id_store,
+                'id_kasir' => $value->id_kasir,
+                'harga' => $harga_item,
+                'qty' => $value->qty,
+                'total' => $value->total,
+                'kode_temp' => $kode_temp,
+                'additional_menu' => count($value->additional_menu) > 0 ? json_encode($value->additional_menu) : null,
+                'opsi_menu' => count($value->opsi_menu) > 0 ? json_encode($value->opsi_menu) : null,
+                'item_type' => is_null($value->item_type) ? null : json_encode($value->item_type),
+                'item_size' => is_null($value->item_size) ? null : json_encode($value->item_size),
+                'pajak' => $value->pajak
             ]);
         }
-
-
-        // // Print langsung dari PC
-        // // self::print_con($no_invoice, $cash, $tipe_pembayaran, $debit_cash, $kembalian, $is_split);
-
+        DB::table('pos_belum_bayar')->insert($data_pos_belum_bayar);
+        DB::commit();
+        return response()->json([$data_pos_belum_bayar, [
+            'subtotal' => $subtotal,
+            'total' => $total,
+            'pajak' => $pajak
+        ]]);
     }
 
     public function edit_note(Request $request)
@@ -1184,6 +1441,16 @@ class PembayaranController extends Controller
             ->where('kode_temp', $kode_temp)
             ->get();
 
+        $data_pembayaran = new GetDataPembayaranService($dataitem);
+        $data_pembayaran->setDataOrder();
+        foreach ($dataitem as $key => $value) {
+            foreach ($value->opsi_menu as $opsi_menu) {
+                $dataitem->push($opsi_menu);
+            }
+        }
+        $dataitem = $dataitem->filter( function ( $item, $key ) {
+            return $item->is_paket == 0;
+        })->values();
         $subtotal = $rowitem->subtotal;
         $total = $rowitem->total;
 
@@ -1204,40 +1471,28 @@ class PembayaranController extends Controller
                 'note' => $request->note
             ]);
 
-        // // Mencari kategori yang ada IP nya untuk di print
-        $n = 0;
-        $array[$n] = array('id_kategori' => null);
-        foreach ($dataitem as $key => $value) {
-            // return $value->nama_kategori;
-            if ($array[$n]['id_kategori'] == null) {
-                $start = $value->id_kategori;
-                $array[$n] = array('id_kategori' => $value->id_kategori);
-            } elseif ($value->id_kategori != $array[$n]['id_kategori']) {
-                array_push($array, array('id_kategori' => $value->id_kategori));
-                $n++;
+        $duplicates_item = collect($dataitem)->duplicates('order_id');
+        foreach ($duplicates_item as $key => $duplicate) {
+            $dataitem = $dataitem->filter( function ($item, $index) use ($key) {
+                return $index != $key;
+            });
+        }
+        $id_kategori = $dataitem->pluck('id_kategori')->unique()->values();
+        $printers = DB::table('pos_product_kategori')->whereIn('id_kategori', $id_kategori)->get();
+        foreach ($printers as $printer) {
+            $printer_service = new DoPrintNoteService($printer, $kode_temp, $type_or, $keterangan_order, $request->note);
+            if ($printer->ip_printer1 != null) {
+                $printer_service->print($printer->ip_printer1);
+            }
+            if ($printer->ip_printer2 != null) {
+                $printer_service->print($printer->ip_printer2);
+            }
+            if ($printer->ip_printer3 != null) {
+                $printer_service->print($printer->ip_printer3);
             }
         }
 
-        // Print By Kategori
-        foreach ($array as $ar) {
-            $ip_printer = DB::table('pos_product_kategori')
-                ->where('id_kategori', $ar['id_kategori'])
-                ->get();
-
-            if ($ip_printer[0]->ip_printer1 != null) {
-                // self::print($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::notetest_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order, $request->note);
-            }
-            if ($ip_printer[0]->ip_printer2 != null) {
-                // self::print_2($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::notetest_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order, $request->note);
-            }
-            if ($ip_printer[0]->ip_printer3 != null) {
-                // self::print3($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order);
-                self::notetest_print_dapur_revisi($ar['id_kategori'], $kode_temp, $type_or, $keterangan_order, $request->note);
-            }
-        }
-
+        return true;
         // return json_encode($array);
 
 
@@ -1247,22 +1502,46 @@ class PembayaranController extends Controller
     public function add_edit_order()
     {
         $item_product = DB::table('pos_product_item')
+            ->join('pos_product_kategori', 'pos_product_kategori.id_kategori', '=', 'pos_product_item.id_kategori')
+            ->select('pos_product_item.*', 'pos_product_kategori.is_paket')
             ->where('id_store', session('id_store'))
             ->get();
+            
+        ?>
+            <div class="form-group">
+                <label for="">Add Item</label>
+                <div class="d-flex justify-content-between">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-8">
+                                <select id="sel_order_add" class="form-control">
+                                    <option></option>
+                                    <?php foreach ($item_product as $key => $value) { ?>
+                                        <option
+                                            value="<?= $value->id_item ?>"
+                                            data-dataid="<?= $value->id_item?>"
+                                            data-type="<?= $value->is_paket ? 'paket' : 'item'?>"
+                                            data-kategori="<?= $value->id_kategori ?>"
+                                            data-text="<?= $value->nama_item ?>"
+                                        >
+                                            <?= $value->nama_item ?> @<?= $value->harga_jual ?>
+                                        </option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <input type="number" min="1" value="1" id="qty_order_add" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col" id="add_item_additional_menu">
 
-?>
-    <div class="form-group">
-        <label for="">Add Item</label>
-        <div class="d-flex justify-content-between">
-            <select id="sel_order_add" class="form-control col-8">
-                <?php foreach ($item_product as $key => $value) { ?>
-                    <option value="<?= $value->id_item ?>"><?= $value->nama_item ?> @<?= $value->harga_jual ?></option>
-                <?php } ?>
-            </select>
-            <input type="number" min="1" value="1" id="qty_order_add" class="form-control col-3">
-        </div>
-    </div>
-<?php
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php
     }
 
     public function store(Request $request)
@@ -1299,11 +1578,23 @@ class PembayaranController extends Controller
 
     public function update(Request $request, $id)
     {
-        DB::table('pos_front_payment')->where('id', $id)
-            ->update([
+        $pos_front_payment = DB::table('pos_front_payment')->where('id', $id)->first();
+        if ($pos_front_payment) {
+            $total = $pos_front_payment->total / $pos_front_payment->qty;
+            $subthirdparty = $pos_front_payment->subthirdparty / $pos_front_payment->qty;
+            $subpajak = $pos_front_payment->subpajak / $pos_front_payment->qty;
+            $subpajak_thirdparty = $pos_front_payment->subpajak_thirdparty / $pos_front_payment->qty;
+            $data = [
                 'qty' => $request->qty,
-                'total' => $request->total
-            ]);
+                'total' => $total * $request->qty,
+                'subthirdparty' => $subthirdparty * $request->qty,
+                'subpajak' => $subpajak * $request->qty,
+                'subpajak_thirdparty' => $subpajak_thirdparty * $request->qty
+            ];
+            // 214, 244
+            DB::table('pos_front_payment')->where('id', $id)
+                ->update($data);
+        }
         return json_encode("Update Sukses");
     }
 
@@ -1337,10 +1628,37 @@ class PembayaranController extends Controller
             ->where('kode_temp', $kode_temp)
             ->get();
 
-        foreach ($pembayaran as $key => $value) {
+        $data_pembayaran = new GetDataPembayaranService($pembayaran);
+        $data_pembayaran->setDataOrder();
+
+        foreach ($data_pembayaran->data as $key => $value) {
             $totalQty += $value->qty;
             $totalHarga += $value->total;
-            array_push($items, new item($value->nama_item . "\n(" . $value->qty . " x " . number_format($value->harga, 0, ",", ".") . ")", number_format($value->total, 0, ",", ".")));
+            if (!($value->id_paket != null && $value->id_kategori != 0)) {
+                array_push(
+                    $items,
+                    new item(
+                        $value->nama_item . "\n(" . $value->qty . " x " . number_format($value->harga, 0, ",", ".") . ")",
+                        number_format($value->qty * $value->harga, 0, ",", ".")
+                    )
+                );
+            } else {
+                array_push($items, "- $value->nama_item");
+            }
+            if ($value->id_kategori != 0) {
+                foreach ($value->additional_menu as $additional_menu) {
+                    array_push(
+                        $items,
+                        new item(
+                            "  + $additional_menu->nama_additional_menu",
+                            number_format($additional_menu->harga * $value->qty, 0, ",", ".")
+                        )
+                    );
+                    $totalHarga += $additional_menu->harga;
+                }
+            } else {
+                $totalQty -= 1;
+            }
         }
 
         $desc = new item2('Item (Qty x Price)', 'Total');
@@ -1365,7 +1683,7 @@ class PembayaranController extends Controller
         $printer->setJustification(Printer::JUSTIFY_CENTER);
         $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH);
         $logo = EscposImage::load("images/icon/mediumLogo.png", false);
-        $printer->bitImageColumnFormat($logo, Printer::IMG_DOUBLE_WIDTH | Printer::IMG_DOUBLE_HEIGHT);
+        // $printer->bitImageColumnFormat($logo, Printer::IMG_DOUBLE_WIDTH | Printer::IMG_DOUBLE_HEIGHT);
         $printer->selectPrintMode();
         $printer->text("Jln.Raja Isa Komp.Ruko KDA Junction\nBlok.D No.05");
         $printer->feed();
@@ -1406,6 +1724,7 @@ class PembayaranController extends Controller
             $diskon = DB::table('pos_belum')->where('kode_temp', $kode_temp)->first();
             $totaldiskon = $diskon->subtotal - $diskon->total;
             $rowdiskon = DB::table('pos_diskon')->where('id_voucher', $id_diskon)->first();
+            $totaldiskon = $rowdiskon->nominal;
 
             $txtdiskon = new item2($rowdiskon->nama_voucher, "-" . number_format($totaldiskon, 0, ",", "."));
             $totalHarga -= $totaldiskon;
@@ -1429,13 +1748,14 @@ class PembayaranController extends Controller
 
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
+        return Log::info([$printer->getPrintConnector()]);
         // $printer -> pulse();
 
         $printer->close();
     }
 
     // Print Untuk PC RESI
-    public function print_resi($inv)
+    public function print_resi(Request $request, $inv)
     {
         date_default_timezone_set('Asia/Jakarta');
         $row_bayar = DB::table('pos_belum')
@@ -1444,8 +1764,7 @@ class PembayaranController extends Controller
         $type_order = $row_bayar->type_order;
         $keterangan_order = $row_bayar->keterangan_order;
         $kode_temp = $inv;
-        $id_diskon = $row_bayar->id_discount;
-
+        $id_diskon = $request->get('id_diskon');
         $type_or = "";
         if ($type_order == 1) {
             $type_or = "Third Party";
@@ -1454,104 +1773,17 @@ class PembayaranController extends Controller
         } elseif ($type_order == 3) {
             $type_or = "Dine In";
         }
-
-        $tanggal = date('d M Y, H:i');
-        $nama_kasir = session('nama');
-        $nama_store = session('nama_store');
-        $nama_printer = DB::table('pos_store')->where('id_store', session('id_store'))->first()->print_kasir;
-        $connector = new WindowsPrintConnector($nama_printer);
-        // $connector = new NetworkPrintConnector("10.154.30.208");
-        /* Information for the receipt */
-
-        $items = array();
-        $totalQty = 0;
-        $totalHarga = 0;
+        
         $pembayaran = DB::table('pos_belum_bayar')
+            ->join('pos_product_kategori', 'pos_product_kategori.id_kategori', '=', 'pos_belum_bayar.id_kategori')
+            ->select('pos_belum_bayar.*', 'pos_product_kategori.is_paket')
             ->where('kode_temp', $kode_temp)
             ->get();
-
-        foreach ($pembayaran as $key => $value) {
-            $totalQty += $value->qty;
-            $totalHarga += $value->total;
-            array_push($items, new item($value->nama_item . "\n(" . $value->qty . " x " . number_format($value->harga, 0, ",", ".") . ")", number_format($value->total, 0, ",", ".")));
-        }
-
-        $desc = new item2('Item (Qty x Price)', 'Total');
-        $tax = new item2('Total Item', $totalQty);
-        $total = new item2('Subtotal (Rp)', number_format($totalHarga, 0, ",", "."));
-        // $date = date('l jS \of F Y h:i:s A');
-        // $date = "Monday 6th of April 2015 02:56:25 PM";
-
-        /* Start the printer */
-        // $logo = EscposImage::load("resources/escpos-php.png", false);
-        $printer = new Printer($connector);
-
-        /* Print top logo */
-        // $printer -> setJustification(Printer::JUSTIFY_CENTER);
-        // $printer -> graphics($logo);
-
-        /* Name of shop */
-        $printer->setJustification(Printer::JUSTIFY_CENTER);
-        $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH);
-        $logo = EscposImage::load("images/icon/mediumLogo.png", false);
-        $printer->bitImageColumnFormat($logo, Printer::IMG_DOUBLE_WIDTH | Printer::IMG_DOUBLE_HEIGHT);
-        $printer->selectPrintMode();
-        $printer->text("Jln.Raja Isa Komp.Ruko KDA Junction\nBlok.D No.05");
-        $printer->feed();
-
-        /* Title of receipt */
-        $printer->text("_________________________________\n");
-        $printer->feed();
-
-
-        /* Title of receipt */
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        $printer->text("No. Nota : " . $inv . "\nType Order : " . $type_order . " - " . $keterangan_order . "\nTanggal  : " . $tanggal . "\nKasir    : " . $nama_kasir . "\n");
-
-        $printer->text("_________________________________\n");
-        $printer->feed();
-
-
-        // Ket nama
-
-        $printer->text($desc);
-        $printer->text("_________________________________\n");
-
-
-        /* Items */
-        $printer->feed();
-        $printer->setJustification(Printer::JUSTIFY_LEFT);
-        foreach ($items as $item) {
-            $printer->text($item);
-        }
-        $printer->text("_________________________________\n");
-        $printer->feed();
-
-        /* Tax and total */
-        $printer->text($tax);
-        // $printer -> selectPrintMode(Printer::MODE_DOUBLE_WIDTH);
-        $printer->text($total);
-        if ($id_diskon != null) {
-            $diskon = DB::table('pos_belum')->where('kode_temp', $kode_temp)->first();
-            $totaldiskon = $diskon->subtotal - $diskon->total;
-            $rowdiskon = DB::table('pos_diskon')->where('id_voucher', $id_diskon)->first();
-
-            $txtdiskon = new item2($rowdiskon->nama_voucher, "-" . number_format($totaldiskon, 0, ",", "."));
-            $totalHarga -= $totaldiskon;
-            $printer->text($txtdiskon);
-        }
-        $txttotal = new item('Total (Rp)', number_format($totalHarga, 0, ",", "."));
-        $printer->text($txttotal);
-        $printer->text("_________________________________\n");
-        $printer->feed();
-        $printer->selectPrintMode();
-        $printer->feed(2);
-
-        /* Cut the receipt and open the cash drawer */
-        $printer->cut();
-        // $printer -> pulse();
-
-        $printer->close();
+        $nama_printer = DB::table('pos_store')->where('id_store', session('id_store'))->first()->print_kasir;
+        $data_pembayaran = new GetDataPembayaranService($pembayaran);
+        $data_pembayaran->setDataOrder();
+        $printer_service = new DoPrintResiService($nama_printer, $inv, $data_pembayaran, $type_or, $keterangan_order, $id_diskon);
+        $printer_service->print();
     }
 
     // // Print Kategori
@@ -1893,6 +2125,15 @@ class PembayaranController extends Controller
         $printer->setJustification(Printer::JUSTIFY_LEFT);
         foreach ($pembayaran as $key => $value) {
             $printer->text($value->nama_item . " - (" . $value->qty . ")\n");
+            $additional_menu = json_decode($value->additional_menu);
+            foreach ($additional_menu as $item) {
+                if (!empty($item->additional_menu)) {
+                    $nama_additional_menu = $item->additional_menu->nama_additional_menu;
+                } else {
+                    $nama_additional_menu = $item->nama_additional_menu;
+                }
+                $printer->text(" + $nama_additional_menu \n");
+            }
             $printer->feed();
         }
         $printer->text("____________\n");
@@ -1909,7 +2150,7 @@ class PembayaranController extends Controller
             $printer->feed();
         }
 
-
+        return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
@@ -2004,7 +2245,7 @@ class PembayaranController extends Controller
             $printer->text("____________\n");
             $printer->feed();
         }
-
+        return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
@@ -2098,7 +2339,7 @@ class PembayaranController extends Controller
             $printer->feed();
         }
 
-
+        return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
@@ -2399,7 +2640,7 @@ class PembayaranController extends Controller
             'id_store' => session('id_store'),
             'id_kasir' => session('id'),
             'tanggal' => $tanggal,
-            'deposit' => $request->total * 1000,
+            'deposit' => 2000000,
             'status' => 1
         ]);
 
@@ -2748,7 +2989,7 @@ class PembayaranController extends Controller
         }
         $printer->text("___________\n");
 
-
+        return $printer->getPrintConnector();
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
@@ -2932,7 +3173,7 @@ class PembayaranController extends Controller
         $printer->text($note . "\n");
         $printer->text("____________\n");
         $printer->feed();
-
+        return $printer->getPrintConnector();
         $printer->cut();
 
         $printer->close();
@@ -3014,6 +3255,7 @@ class PembayaranController extends Controller
         }
         $printer->text("____________\n");
         $printer->feed();
+        return $printer->getPrintConnector();
 
 
         /* Cut the receipt and open the cash drawer */

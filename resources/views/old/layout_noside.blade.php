@@ -6,29 +6,30 @@ $segments = request()->segments();
 <head>
     @include('_partials.head')
     @yield('style')
+    <link rel="stylesheet" href="{{ URL::asset('css/style-login.css') }}">
 </head>
 <body class="">
     <div id="app">
         <div class="main-wrapper">
             <div class="navbar-bg"></div>
-            @include('_partials.navbar')
+            @include('_partials-noside.navbar-noside')
 
             {{-- <div class="main-sidebar">
                 <aside id="sidebar-wrapper">
-                    @include('_partials.sidebar')
+                    @include('_partials-noside.sidebar-noside')
                 </aside>
             </div> --}}
-            <div class="main-content">
-                <section class="section">
+            <div class="main-content login">
+                <section class="section section-login">
                     <!-- <div class="section-header">
                         <h1>@yield('page title')</h1>
                         <div class="section-header-breadcrumb">
-                            @if(count($segments) > 1)
+                            {{-- @if(count($segments) > 1)
                                 <div class="breadcrumb-item"><a href="{{ url('/') }}">home</a></div>
                                 <div class="breadcrumb-item"><p>{{ $segments[0] }}</p></div>
                                 <div class="breadcrumb-item"><p>{{ $segments[1] }}</p></div>
                                 <div class="breadcrumb-item active"><p>{{ $segments[2] }}</p></div>
-                            @endif
+                            @endif --}}
                         </div>
                     </div> -->
 
@@ -62,7 +63,7 @@ $segments = request()->segments();
 {{-- ./MODAL Logout --}}
 
 <!-- REQUIRED SCRIPTS -->
-@include('_partials.footer-script')
+@include('_partials-noside.footer-script-noside')
 <script>
     const btnLogout = $('#btnLogout');
     btnLogout.click(function (e) {

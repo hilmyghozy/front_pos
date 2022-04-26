@@ -13,11 +13,11 @@ $segments = request()->segments();
             <div class="navbar-bg"></div>
             @include('_partials.navbar')
 
-            {{-- <div class="main-sidebar">
+            <div class="main-sidebar">
                 <aside id="sidebar-wrapper">
                     @include('_partials.sidebar')
                 </aside>
-            </div> --}}
+            </div>
             <div class="main-content">
                 <section class="section">
                     <!-- <div class="section-header">
