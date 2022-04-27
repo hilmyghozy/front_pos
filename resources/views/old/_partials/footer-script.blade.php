@@ -205,7 +205,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderPay" tabindex="-1" role="dialog" aria-labelledby="modalOrderPayLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl" role="document">
+  <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -248,7 +248,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderDetail" tabindex="-1" role="dialog" aria-labelledby="modalOrderDetailLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -269,14 +269,14 @@
                 </table>
               </div>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-4">
               <input type="hidden" id="meja_choose">
               <button type="button" class="btn-style btn-red" data-dismiss="modal" aria-label="Close">Batal</button>
             </div>
-            {{-- <div class="col-sm-4">
+            <div class="col-sm-4">
               <button type="button" class="btn-style btn-info" onclick="print_resi()">Resi</button>
-            </div> --}}
-            <div class="col-sm-6">
+            </div>
+            <div class="col-sm-4">
               <button type="button" class="btn-style btn-primary" id="validasi_modalOrderDetail">Validasi</button>
             </div>
           </div>
@@ -299,7 +299,7 @@
               <h5 class="mt-2">Metode Pembayaran</h5>
             </div>
             <div class="col-sm-4">
-              <button type="button" class="btn-style btn-info btn-print-resi" onclick="print_resi(this)">Resi</button>
+              <button type="button" class="btn-style btn-primary" id="btn-validasi-pembayaran">Validasi</button>
             </div>
           </div>
           <hr>
@@ -319,16 +319,6 @@
               @endforeach
             </div>
           </div>
-          <div class="row">
-            <div class="col-md-12">
-              <p class="lead mt-3">Voucher</p>
-            </div>
-            <div class="col-md-12 daftar-voucher">
-              @foreach ($voucher as $tipe)
-              <button type="button" class="btn-style btn-pay btn-add-diskon" data-dataid="{{$tipe->id_voucher}}" value="{{$tipe->nama_voucher}}" data-value="{{$tipe->nominal}}" data-tipe="{{$tipe->tipe_voucher}}"> {{$tipe->nama_voucher}} </button>
-              @endforeach
-            </div>
-          </div>
         </div>
         <input type="hidden" id="kode-order-temp">
         <input type="hidden" id="id-payment-method">
@@ -339,20 +329,12 @@
         <div class="table-responsive mt-3">
           <table class="table table-striped table-md">
             <tr>
-              <th>Subtotal Penjualan</th>
-              <th>Pajak Penjualan</th>
-              <th>Diskon Penjualan</th>
               <th>Total Penjualan</th>
               <th>Pembayaran</th>
               <th>Kembalian</th>
             </tr>
             <tr>
-              <td class="subtotal_penjualan">11.800.000</td>
-              <td class="pajak_penjualan">11.800.000</td>
-              <td class="diskon">
-                -
-              </td>
-              <td class="total-harga"></td>
+              <td class="total-harga">11.800.000</td>
               <td id="metodePembayaran">
                 <div class="badge badge-success"></div> <b></b> <b class="plus-split hidden">+</b>
               </td>
@@ -451,9 +433,6 @@
                     <div class="col-sm-4">
                       <button type="button" class="btn-style btn-green btn-back"><i class="fas fa-arrow-left"></i></button>
                     </div>
-                    <div class="col-sm-12">
-                      <button type="button" class="btn-style btn-primary" id="btn-validasi-pembayaran">Validasi</button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -473,7 +452,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderEdit" tabindex="-1" role="dialog" aria-labelledby="modalOrderEditLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -511,7 +490,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderEditItem" tabindex="-1" role="dialog" aria-labelledby="modalOrderEditItemLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -546,7 +525,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderAddItem" tabindex="-1" role="dialog" aria-labelledby="modalOrderAddItemLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -621,7 +600,7 @@
 </div>
 
 <div class="modal fade" id="modalNoteEdit" tabindex="-1" role="dialog" aria-labelledby="modalNoteEditLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+  <div class="modal-dialog modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -650,9 +629,6 @@
   </div>
 </div>
 
-@include('_partials.menumodal')
-@include('_partials.additional')
-
 
 <!-- General JS Scripts -->
 <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -669,7 +645,6 @@
 <!-- Template JS File -->
 <script src="js/scripts.js"></script>
 <script src="js/custom.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
   $('.sidebar-menu li').click(function() {
     alert($(this).val());

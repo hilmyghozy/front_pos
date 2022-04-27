@@ -3353,7 +3353,8 @@ body.layout-3 .main-footer {
   background: #169870; 
 }
 .main-content {
-  padding-left: 28%;
+  /* padding-left: 28%; */
+  padding-left: 30px;
   padding-right: 30px;
   padding-top: 80px;
   width: 100%;

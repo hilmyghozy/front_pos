@@ -2,25 +2,113 @@
 
 @section('page title','Pengajuan Cuti')
 
-@section('style')
-<link rel="stylesheet" href="css/invoice.css">
-<link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
-{{-- <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.11.5/datatables.min.css"/> --}}
-@endsection
-
 @section('content')
-<div class="card">
+    <div class="card">
         <div class="card-body">
-            <div class="container">
-                <div class="row">
-                    <div class="col d-flex justify-content-end">
-                        <button type="button" class="w-auto mr-3 btn btn-primary" data-toggle="modal" data-target="#menuModal">Menu</button>
-                        <button type="button" class="w-auto mr-3 btn btn-success" onclick="open_modal_note()">Order</button>
+            <ul class="nav nav-tabs" id="myTab5" role="tablist">
+                @foreach ($array as $kategori)
+                    <li class="nav-item">
+                        <a class="nav-link {{$start==$kategori['id_kategori'] ? 'active' : ''}}" id="tab-tab{{$kategori['id_kategori']}}" data-toggle="tab" href="#tab{{$kategori['id_kategori']}}" role="tab" aria-controls="tab-label{{$kategori['id_kategori']}}" aria-selected="true">
+                            <text>{{$kategori['nama_kategori']}}</text>
+                        </a>
+                    </li>
+                @endforeach
+                <li class="nav-item">
+                    <a class="nav-link" id="tab-tabpaket" data-toggle="tab" href="#tab-paket" role="tab" aria-controls="tab-labelpaket" aria-selected="true">
+                        <text>Paket</text>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="tab-tabvoucher" data-toggle="tab" href="#tab-voucher" role="tab" aria-controls="tab-labelvoucher" aria-selected="true">
+                        <text>Voucher</text>
+                    </a>
+                </li>
+            </ul>
+            <div class="tab-content" id="myTabContent5">
+                @foreach ($array as $kategori)
+                    <div class="tab-pane fade show {{$start==$kategori['id_kategori'] ? 'active' : ''}}" id="tab{{$kategori['id_kategori']}}" role="tabpanel" aria-labelledby="tab-tab{{$kategori['id_kategori']}}">
+                        <div class="card">
+                            <div class="card-body" id="jenis-ticket1">
+                                
+                            <table id="table_id" class="display">
+                                <?php
+                                    $no=1;
+                                ?>
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>ID</th>
+                                                <th>Nama</th>
+                                                <th>Harga</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                @foreach ($item as $produk)
+                                    @if ($produk->id_kategori == $kategori['id_kategori'])
+                                            <tr>
+                                                <td>{{ $no++}}</td>
+                                                <td>{{$produk->id_item}}</td>
+                                                <td>{{$produk->nama_item}}</td>
+                                                <td>Rp. {{number_format($produk->harga_jual,0,',','.')}}</td>
+                                                <td>
+                                        <button type="button" class="btn-style datatiket btn-info" id="tiket-id-{{$produk->id_item}}" data-dataid="{{$produk->id_item}}" value="{{$produk->nama_item}}">Add</button>
+
+                                                </td>
+                                            </tr> 
+                                    @endif
+                                @endforeach
+                                
+                                </tbody>
+                                    </table>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+                
+                <div class="tab-pane fade show" id="tab-paket" role="tabpanel" aria-labelledby="tab-tabpaket">
+
+                    <div class="card-body" id="jenis-ticket2-paket">
+                    <table id="table_id" class="display">
+                                <?php
+                                    $no=1;
+                                ?>
+                                        <thead>
+                                            <tr>
+                                                <th>No</th>
+                                                <th>ID</th>
+                                                <th>Nama</th>
+                                                <th>Harga</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                @foreach ($paket as $paketitem)
+                                            <tr>
+                                                <td>{{ $no++}}</td>
+                                                <td>{{$paketitem->id_paket}}</td>
+                                                <td>{{$paketitem->nama_paket}}</td>
+                                                <td>Rp. {{number_format($paketitem->harga_jual,0,',','.')}}</td>
+                                                <td>
+                                        <button type="button" class="btn-style datatiket btn-info" id="tiket-id-{{$paketitem->id_paket}}" data-dataid="{{$paketitem->id_paket}}" value="{{$paketitem->nama_paket}}">Add</button>
+
+                                                </td>
+                                            </tr>  
+                                @endforeach
+                                
+                                </tbody>
+                                    </table>
                     </div>
                 </div>
-            </div>
-            <div id="invoice">
-                @include('_partials.invoice', ['pembayaran' => [], 'sub_total' => 0, 'thirdparty' => 0, 'total' => 0, 'pajak_thirdparty' => 0, 'pajak' => 0, 'sub_total_thirdparty' => 0])
+                <div class="tab-pane fade show" id="tab-voucher" role="tabpanel" aria-labelledby="tab-tabvoucher">
+                    <div class="card">
+                        <div class="card-body" id="jenis-voucher">
+                            @foreach ($voucher as $produk)
+                                <button type="button" class="btn-style btn-produk datatiket" id="diskon-id-{{$produk->id_voucher}}" data-dataid="{{$produk->id_voucher}}" data-tipe="{{$produk->id_voucher}}" data-nominal="{{$produk->nominal}}" data-persen="{{$produk->persen}}" data-makspersen="{{$produk->maks_persen}}" value="{{$produk->nama_voucher}}">{{$produk->nama_voucher}}<br>{{$produk->tipe_voucher==1 ? $produk->nominal : 'Max '.$produk->maks_persen}}</button>
+                            @endforeach    
+                        </div>
+                    </div>
+                </div>
             </div>
             <input type="hidden" id="id-click">
             <input type="hidden" id="nama-click">
@@ -36,10 +124,11 @@
 @endsection
 
 @section('script')
-    {{-- <script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.11.5/datatables.min.js"></script> --}}
     <script>
         $(document).ready( function () {
-            $('.display').DataTable();
+            $('.display').DataTable({
+                "paging": false,
+            });
         });
 
         $.ajaxSetup({
@@ -258,23 +347,13 @@
     </script>
 
     <script type="text/javascript">
-        function loadInvoice () {
-            // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            $('#invoice').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('.table-pembayaran tr td #n_thirdparty').load('{{ url('pembayaran/thirdparty') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
-        }
+        
         $(document).ready(function (){ 
-            loadInvoice();
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            // $('#invoice').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('.table-pembayaran tr td #n_thirdparty').load('{{ url('pembayaran/thirdparty') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+            $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+            $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+            $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+            $('.table-pembayaran tr td #n_thirdparty').load('{{ url('pembayaran/thirdparty') }}');
+            $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
         });
 
         var id_click;
@@ -331,54 +410,29 @@
             jumlah_click=0;
         }
         
-        /** The Add Button **/
         var dataid;
         $(document).on("click", "#jenis-ticket1 button", function(){
             dataid = $(this).data("dataid");
             // alert(dataid);
-            add(dataid)
-            // $.ajax({
-            //     url: '{{ url("pembayaran/create") }}',
-            //     dataType : 'json',
-            //     type: 'post',
-            //     data: {
-            //     "_token": "{{ csrf_token() }}",
-            //     "id": dataid
-            //     },
-            //     success:function(response) {
-            //         console.log(response);
-            //     }
-            // });
-            // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
-            
-        });
-
-        function add(dataid, type = null, additionalMenuItem = []) {
             $.ajax({
                 url: '{{ url("pembayaran/create") }}',
                 dataType : 'json',
                 type: 'post',
                 data: {
-                    "_token": "{{ csrf_token() }}",
-                    "id": dataid,
-                    type: type,
-                    additional_menu: additionalMenuItem
+                "_token": "{{ csrf_token() }}",
+                "id": dataid
                 },
                 success:function(response) {
-                    loadInvoice();
+                    console.log(response);
                 }
             });
-            // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+            $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+            $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+            $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+            $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+            $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
             
-        }
+        });
 
         
         $(document).on("click", "#jenis-ticket2-paket button", function(){
@@ -412,15 +466,13 @@
                     },
                     success:function(response) {
                         console.log(response);
-                        loadInvoice();
                     }
                 });
-                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                // $('#invoice').load('{{ url('pembayaran') }}');
-                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
             }
 
             
@@ -482,17 +534,15 @@
                     },
                     success:function(response) {
                         console.log(response);
-                        loadInvoice();
                     }
                 });
 
 
-                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                // $('#invoice').load('{{ url('pembayaran') }}');
-                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
                 $('#modalPaket').modal('hide');
 
@@ -516,33 +566,30 @@
         });
 
         //delete_item
-        // $(document).on("click",".btn-trash",function(button){
-        //     var id = button.target.dataset.id
-        //     x = "pembayaran/"+id;
+        $(document).on("click","#btn-trash",function(){
+            var id = id_click;
+            x = "pembayaran/"+id;
 
-        //     if(id>0){
-                // $.ajax({
-                //     url: '{{ url("pembayaran") }}'+"/"+id,
-                //     method: 'DELETE',
-                //     data: {
-                //         "_token": "{{ csrf_token() }}",
-                //         },
-                //     success: function (response) {
-                //         console.log("Deleted");
-                //         id = 0
-                //         loadInvoice();
-                //     }
-                // });
-                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                // $('#invoice').load('{{ url('pembayaran') }}');
-                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+            if(id>0){
+                    $.ajax({
+                    url: '{{ url("pembayaran") }}'+"/"+id,
+                    method: 'DELETE',
+                    data: {
+                        "_token": "{{ csrf_token() }}",
+                        },
+                    success: function (response) {
+                        console.log("Deleted");
+                    }
+                });
+                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
-                // removeClassSidemenu();
-        //     }
-        // });
+                removeClassSidemenu();
+            }
+        });
 
         //hapus_qty
         $(document).on("click","#btn-next",function(){
@@ -577,15 +624,13 @@
                     },
                     success:function(response) {
                         console.log(response);
-                        loadInvoice();
                     }
                 });
-                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                // $('#invoice').load('{{ url('pembayaran') }}');
-                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
                 
             }
@@ -626,15 +671,13 @@
                     },
                     success:function(response) {
                         console.log(response);
-                        loadInvoice();
                     }
                 });
-                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                // $('#invoice').load('{{ url('pembayaran') }}');
-                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
             }else if(id_click > 0 && x != "" ){
                 n=x;
@@ -664,13 +707,11 @@
                             },
                             success:function(response_2) {
                                 console.log(response_2);
-                                loadInvoice();
-                                // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-                                // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                                // $('#invoice').load('{{ url('pembayaran') }}');
-                                // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-                                // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-                                // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+                                $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+                                $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+                                $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+                                $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+                                $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
                             }
                         });
@@ -741,7 +782,8 @@
         });
 
         //Modal_pembayaran_button
-        $(document).on("click","#btn-validasi-pembayaran",function(){
+        $(document).on("click",".modal-header .container-fluid .row .col-sm-4 .btn-primary",function(){
+
             var total_bayar = tanpaTitik($('tr td.total-harga').text());
             var tipe_bayar = $('#nama-payment-method').val();
             var is_splited = $('#split-bill-clicked').val();
@@ -752,7 +794,6 @@
             var kode_order = $('#kode-order-temp').val();
             var no_invoice = $('#order_no_invoice').text();
             var kembalian = tanpaTitik($('#bar_kembalian').text());
-            var voucher_id = $('input[name="diskon_value"]').val();
             var change = parseInt(kembalian);
             if(tipe_bayar==''){
                 sweetAlert(
@@ -783,8 +824,7 @@
                         'cash' : cash,
                         'cash_split' : cash_split,
                         'no_invoice' : no_invoice,
-                        'kembalian' : kembalian,
-                        'voucher_id': voucher_id
+                        'kembalian' : kembalian
                         },
                         success:function(response) {
                             console.log(response);
@@ -794,7 +834,6 @@
                     // removeClassSidemenu();  
                     // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
                     // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-                    $('#invoice').load('{{ url('pembayaran') }}');
                     // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
                     // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
                     // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
@@ -839,9 +878,7 @@
         });
 
         //button tipe pembayaran
-        var buttonPembayaran
         $(document).on("click",".col-md-12.metode-pembayaran button.btn-pay",function(){
-            buttonPembayaran = $(this)
             $('#id-payment-method').val($(this).data('dataid'));
             $('#nama-payment-method').val($(this).text());
             $('#is-split-method').val($(this).data('value'));
@@ -946,15 +983,14 @@
                     
                     },
                     success:function(response) {
-                        loadInvoice();
+                        console.log(response);
                     }
                 });
-            // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            // $('#invoice').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+            $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+            $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+            $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+            $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+            $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
         });
 
@@ -1075,17 +1111,15 @@
                 'note' : note,
                 },
                 success:function(response) {
-                    loadInvoice();
                 }
             });
             
             removeClassSidemenu();  
-            // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
-            // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
-            // $('#invoice').load('{{ url('pembayaran') }}');
-            // $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
-            // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
-            // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
+            $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
+            $('#tab-sidemenu').load('{{ url('pembayaran') }}');
+            $('.table-pembayaran tr td #total-all-harga').load('{{ url('pembayaran/total') }}');
+            $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
+            $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
             sweetAlert(
                 '',
@@ -1116,24 +1150,16 @@
 
         $(document).on("click","#validasi_modalOrderDetail",function(){
             var total_h = $('#total_order').text();
-            var subtotal_h = $('#sub_total_order').text();
-            var pajak_h = $('#pajak_order').text();
             $('#modalOrderDetail').modal('hide');
             $('tr td.total-harga').text(total_h);
-            $('tr td.subtotal_penjualan').text(subtotal_h);
-            $('tr td.pajak_penjualan').text(pajak_h);
             $('#pembayaranModal').modal('show');
-            $('#pembayaranModal').on('hidden.bs.modal', function () {
-                removeDiskon();
-            })
             splitUangKembali();
             uangKembalian();
         });
 
-        function print_resi(event){
-            var id_diskon = $(event).data('id-diskon')
+        function print_resi(){
             var no_inv = $('#order_no_invoice').text();
-            $.get((`{{ url('pembayaran/print_resi') }}/${no_inv}?id_diskon=${id_diskon}`), function(data, status){
+            $.get(('{{ url('pembayaran/print_resi') }}/'+no_inv), function(data, status){
                 console.log("Data: " + data + "\nStatus: " + status);
             });
         }
@@ -1158,16 +1184,16 @@
                             "_token": "aE1qWnsJQ8Odh11nsfLjAwk3hKoeXj8G2QXpKqSZ",
                         },
                         success:function(response) {
-                            console.log(response)
-                            $('#body_belum_bayar').load('{{ url('pembayaran/belum_bayar') }}');
-                            sweetAlert(
-                                '',
-                                'Delete Order Berhasil',
-                                'success'
-                            )
+                            console.log('del_order')
                         }
                     });
 
+                    $('#body_belum_bayar').load('{{ url('pembayaran/belum_bayar') }}');
+                    sweetAlert(
+                        '',
+                        'Delete Order Berhasil',
+                        'success'
+                    )
                 }
             });
 
@@ -1194,252 +1220,118 @@
             // alert(inp)
         }
 
-        var data_edit_order = {
-            createData: [],
-            updateData: [],
-            deleteData: []
-        }
-
         function edit_order(id){
-            $('#body_modalOrderEdit').html(loadingAdditionalMenu)
             var kode_temp = $('#kode_temp'+id).text();
             $.get(('{{ url('pembayaran/add_revisi_order') }}/'+kode_temp), function(data, status){
                 console.log("Data: " + data + "\nStatus: " + status);
-                data_edit_order = {
-                    createData: [],
-                    updateData: [],
-                    deleteData: []
-                }
-                $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
             });
             // $('#kode-order-temp').val(kode_temp);
             // $('#bayar-input').val(0);
             // $('#kartu-input').val(0);
             // $('#split-bill tr td input').val(0);
             // $('#split-bill-tunai tr td input').val(0);
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
             $('#modalOrderEdit').modal('show');
         }
 
-        function edit_orderEdit(id, event){
-            prevMenuPaket = 0
-            setCreateDataToNull()
-            var idpaket = $(event).data('idpaket')
-            var idkategori = $(event).data('idkategori')
-            $('#body_modalOrderEditItem').html(loadingAdditionalMenu)
-            $.ajax({
-                url: '{{ url('pembayaran/detail_belum_bayar_editItem') }}/'+id+`?id_paket=${idpaket}&id_kategori=${idkategori}`,
-                success: function (response) {
-                    $('#body_modalOrderEditItem').html(response)
-                    $('#sel_order_revisi').select2({
-                        placeholder: "Pilih Item",
-                        dropdownParent: '#modalOrderEditItem'
-                    })
-                    var selected_item = $('#sel_order_revisi').select2('data')
-                    if (selected_item.length > 0) {
-                        setCreateData(selected_item[0].element, createData, '#sel_order_revisi_additional_option')
-                    }
-                    $('#sel_order_revisi').on('select2:select', function (select) {
-                        setCreateDataToNull()
-                        setCreateData(select.target.selectedOptions, createData, '#sel_order_revisi_additional_option')
-                    })
-                    validasiModalOrderDetailEditItem()
-                },
-                error: function (error) {
-
-                }
-            })
+        function edit_orderEdit(id){
+            $('#body_modalOrderEditItem').load('{{ url('pembayaran/detail_belum_bayar_editItem') }}/'+id);
             $('#modalOrderEditItem').modal('show');
-            $('#modalOrderEditItem').on('hidden.bs.modal', function () {
-                setCreateDataToNull()
-                $('#validasi_modalOrderDetailEditItem').off('click')
-                $('#body_modalOrderEditItem').html('')
-            })
+            // $('#id_item_edit_order').val(id);
         }
 
         function del_orderEdit(id){
             $.get(('{{ url('pembayaran/del_revisi_order') }}/'+id), function(data, status){
-                // console.log("Data: " + data + "\nStatus: " + status);
-                var dataCreateData = data_edit_order.createData.filter(function (create) {
-                    return create.id_pos_revisi_bayar == data.id
-                })
-                if (dataCreateData.length == 0) data_edit_order.deleteData.push(data)
-                data_edit_order.createData = data_edit_order.createData.filter(function (create) {
-                    return create.id_pos_revisi_bayar != data.id
-                })
-                data_edit_order.updateData = data_edit_order.updateData.filter(function (update) {
-                    return update.id_pos_belum_bayar != data.id_pos_belum_bayar
-                })
-                console.log(data_edit_order);
-                var kode_temp = $('#id_orderEdit').text();
-                $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+                console.log("Data: " + data + "\nStatus: " + status);
             });
-        }
-
-        function validasiModalOrderDetailEditItem () {
-            $('#validasi_modalOrderDetailEditItem').on('click', function (button) {
-                if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
-                    sweetAlert(
-                            '',
-                            `Silahkan pilih opsi menu terlebih dahulu`,
-                            'warning'
-                        )
-                    return;
-                }
-                var buttonTypes = $('button.btn-item-type')
-                if (buttonTypes.length > 0) {
-                    if (!createData.item_type) {
-                        sweetAlert(
-                            '',
-                            `Silahkan pilih menu type terlebih dahulu`,
-                            'warning'
-                        )
-                        return;
-                    }
-                }
-                var unselected_menu_type = 0
-                $('button.opsi_menu_text').each(function(index, val) {
-                    var menu_type = Number($(val).data('menu_type'))
-                    var selected_menu_type = Number($(val).data('selected_menu_type'))
-                    if (menu_type > 0 && selected_menu_type == 0) unselected_menu_type += 1;
-                })
-                if (unselected_menu_type > 0) {
-                    sweetAlert(
-                        '',
-                        `Silahkan pilih menu type terlebih dahulu`,
-                        'warning'
-                    )
-                    return;
-                }
-                button.preventDefault()
-                var id_item = $('#id_item_edit_order').val();
-                var id_pos_belum_bayar = $('#id_pos_belum_bayar').val();
-                var id_item_sel = $('#sel_order_revisi').val();
-                var qty_item = $('#qty_order_revisi').val();
-                var kode_temp = $('#id_orderEdit').text();
-                var updateDataEdit = createData
-                updateDataEdit.kode_temp = kode_temp
-                updateDataEdit.qty_item = qty_item
-                updateDataEdit.id_pos_revisi_bayar = id_item
-                updateDataEdit.id_pos_belum_bayar = id_pos_belum_bayar
-                $.ajax({
-                    url: '{{ url("pembayaran/edit_item_order") }}',
-                    dataType : 'json',
-                    type: 'post',
-                    data: updateDataEdit,
-                    success:function(response) {
-                        var createResponse = response['create']
-                        var updateResponse = response['update']
-                        var createDataEdit = data_edit_order.createData.filter (function (data) {
-                            return data.id == updateResponse.id
-                        })
-                        if (createDataEdit.length == 0) {
-                            data_edit_order.updateData = data_edit_order.updateData.filter( function (data) {
-                                return data.id_pos_revisi_bayar != updateDataEdit.id_pos_revisi_bayar
-                            })
-                            data_edit_order.updateData.push(updateResponse)
-                        } else {
-                            data_edit_order.createData = data_edit_order.createData.filter ( function (data) {
-                                return data.id != updateResponse.id
-                            })
-                            data_edit_order.createData.push(updateResponse)
-                        }
-                        if (createResponse != null) data_edit_order.createData.push(createResponse)
-                        $.ajax({
-                            url: '{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp,
-                            success: function (response) {
-                                $('#body_modalOrderEdit').html(response)
-                                $('#modalOrderEditItem').modal('hide');
-                            }
-                        })
-                    }
-                });
-            })
-        }
-
-        $('#validasi_modalOrderEdit').on('click', function () {
             var kode_temp = $('#id_orderEdit').text();
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+        }
+
+        $(document).on("click","#validasi_modalOrderDetailEditItem",function(){
+            var id_item = $('#id_item_edit_order').val();
+            var id_item_sel = $('#sel_order_revisi').val();
+            var qty_item = $('#qty_order_revisi').val();
+
+            // console.log(qty_item)
+
+            $.ajax({
+                url: '{{ url("pembayaran/edit_item_order") }}',
+                dataType : 'json',
+                type: 'post',
+                data: {
+                "_token": "{{ csrf_token() }}",
+                'id_item' : id_item,
+                'id_item_sel' : id_item_sel,
+                'qty_item' : qty_item
+                },
+                success:function(response) {
+                    console.log(response)
+                }
+            });
+
+            var kode_temp = $('#id_orderEdit').text();
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+            $('#modalOrderEditItem').modal('hide');
+        });
+
+        $(document).on("click","#validasi_modalOrderEdit",function(){
+            var kode_temp = $('#id_orderEdit').text();
+            var subtotal = $('#subtotalOrderEdit').text();
+            subtotal = tanpaTitik(subtotal)
+            var total = $('#totalOrderEdit').text();
+            total = tanpaTitik(total)
+
             $.ajax({
                 url: '{{ url("pembayaran/edit_order") }}',
                 dataType : 'json',
                 type: 'post',
                 data: {
-                    _token: "{{ csrf_token() }}",
-                    kode_temp: kode_temp,
-                    data: data_edit_order
+                "_token": "{{ csrf_token() }}",
+                'kode_temp' : kode_temp,
+                'subtotal' : subtotal,
+                'total' : total
                 },
                 success:function(response) {
                     console.log(response)
-                    $('#body_belum_bayar').load('{{ url('pembayaran/belum_bayar') }}');
-                    $('#modalOrderEdit').modal('hide');
                 }
             });
-        })
+
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+            $('#body_belum_bayar').load('{{ url('pembayaran/belum_bayar') }}');
+            $('#modalOrderEdit').modal('hide');
+        });
 
         function open_AddItem(){
-            prevMenuPaket = 0
-            $('#body_modalOrderAddItem').html(loadingAdditionalMenu)
-            setCreateDataToNull()
-            $.ajax({
-                url: '{{ url('pembayaran/add_edit_order') }}'
-            }).done( function (response) {
-                $('#body_modalOrderAddItem').html(response)
-                $('#sel_order_add').select2({
-                    placeholder: "Pilih Item",
-                    dropdownParent: $("#modalOrderAddItem")
-                })
-                $('#sel_order_add').on('select2:select', function (event) {
-                    setCreateData(event.target.selectedOptions, createData, '#add_item_additional_menu')
-                })
-            })
+            $('#body_modalOrderAddItem').load('{{ url('pembayaran/add_edit_order') }}');
             $('#modalOrderAddItem').modal('show');
-            $('#modalOrderAddItem').on('hidden.bs.modal', function () {
-                $('#saveMenu').off('click')
-                $('#body_modalOrderAddItem').html('')
-                setCreateDataToNull()
-            })
         }
 
         $(document).on("click","#validasi_modalOrderDetailAddItem",function(){
-            var html = $('#body_modalOrderEdit').html()
             var kode_temp = $('#id_orderEdit').text();
-            createData.opsi_menu = []
-            $('.menu_terpilih').each(function (key, val) {
-                var menuTerpilih = $(val).data('opsimenu')
-                createData.opsi_menu.push(menuTerpilih)
-            })
-            if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
-                sweetAlert(
-                        '',
-                        `Silahkan pilih opsi menu terlebih dahulu`,
-                        'warning'
-                    )
-                return;
-            }
+
             var id_item = $('#sel_order_add').val();
             var qty_item = $('#qty_order_add').val();
-            var createDataEdit = createData
-            createDataEdit.kode_temp = kode_temp
-            createDataEdit.qty_item = qty_item
-            $('#body_modalOrderEdit').html(loadingAdditionalMenu)
+            // console.log(id_item);
 
             $.ajax({
                 url: '{{ url("pembayaran/add_edit_item_order") }}',
                 dataType : 'json',
                 type: 'post',
-                data: createDataEdit,
+                data: {
+                "_token": "{{ csrf_token() }}",
+                'kode_temp' : kode_temp,
+                'id_item' : id_item,
+                'qty_item' : qty_item
+                },
                 success:function(response) {
-                    setCreateDataToNull()
-                    $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
-                    if (response !== 0) {
-                        data_edit_order.createData.push(response);
-                        $('#additionalMenuBody').html('')
-                    }
-                    $('#modalOrderAddItem').modal('hide');
-                }, error: function (error) {
-                    $('#body_modalOrderEdit').html(html)
+                    console.log(response)
                 }
             });
 
+
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+            $('#modalOrderAddItem').modal('hide');
         });
 
         function open_note(id){
@@ -1471,459 +1363,11 @@
                 }
             });
             var kode_temp = $('#kode_temp'+id_belum).text()
-            // $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
+            $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
             $('#modalNoteEdit').modal('hide');
         }
 
 
 
   </script>
-
-    <script>
-        var loadingAdditionalMenu = `<div class="d-flex justify-content-center" id="loadingAdditionalMenu">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-        </div>`
-        var createData = {
-            "_token": "{{ csrf_token() }}",
-            id: null,
-            id_kategori: null,
-            type: null,
-            additional_menu: [],
-            item_type: null,
-            item_size: null,
-            opsi_menu: []
-        }
-        function setCreateDataToNull() {
-            createData.id = null
-            createData.id_kategori = null
-            createData.item_type = null
-            createData.item_size = null
-            createData.additional_menu = []
-            createData.opsi_menu = []
-        }
-        function toggleClassActive(element) {
-            $(element).toggleClass('active')
-            $(element).siblings().removeClass('active')
-            $(element).siblings().children('.item-check').html('')
-        }
-        function setAdditionalItem(element) {
-            if (createData.type == 'item') {
-                var checked = $(element)[0].checked
-                var value = $(element).val()
-                if (checked) {
-                    createData.additional_menu.push(value)
-                } else {
-                    var additionalMenu = createData.additional_menu.filter(function (additionalItem) {
-                        return additionalItem != value
-                    })
-                    createData.additional_menu = additionalMenu
-                }
-            } else {
-                
-            }
-        }
-        async function ajax(dataType, dataKategori, dataId, paket = 0) {
-            return $.ajax({
-                url: '{{ url("additional-menu") }}',
-                data: {
-                    type: dataType,
-                    id_kategori: dataKategori,
-                    id: dataId,
-                    paket: paket,
-                    id_paket: createData.id
-                }
-            })
-        }
-        function getItem (item, element) {
-            toggleClassActive(element)
-            if (item == null) {
-                $(element).children('.item-check').html('&check;')
-                return {
-                    id: $(element).data('id'),
-                    text: $(element).data('text'),
-                    harga: $(element).data('harga'),
-                }
-            } else if ($(element).data('id') != item.id) {
-                $(element).children('.item-check').html('&check;')
-                return {
-                    id: $(element).data('id'),
-                    text: $(element).data('text'),
-                    harga: $(element).data('harga'),
-                }
-            } else {
-                $(element).children('.item-check').html('')
-                return null
-            }
-        }
-        function getAdditionalMenu (additionalMenu, element) {
-            var checked = element.target.checked
-            var value = element.target.value
-            if (checked) {
-                additionalMenu.push({
-                    id: value,
-                    text: element.target.dataset.text,
-                    harga: element.target.dataset.harga,
-                })
-            } else {
-                additionalMenu = additionalMenu.filter( function (detail) {
-                    return detail.id != value
-                })
-            }
-            return additionalMenu;
-        }
-        function selectAdditional (data) {
-            $('.btn-item-type').on('click', function () {
-                data.item_type = getItem(data.item_type, this)
-            })
-            $('.btn-item-size').on('click', function () {
-                data.item_size = getItem(data.item_size, this)
-            })
-            $('.additional_menu_item').on('change', function (additional) {
-                data.additional_menu = getAdditionalMenu(data.additional_menu, additional)
-            })
-            return data;
-        }
-        async function setCreateData(event, createData, body = null) {
-            var dataId = $(event).data('dataid')
-            var dataType = $(event).data('type')
-            var dataKategori = $(event).data('kategori')
-            var dataText = $(event).data('text')
-            setCreateDataToNull()
-            $(body).html(loadingAdditionalMenu)
-            createData.type = dataType
-            createData.id = dataId
-            createData.id_kategori = dataKategori
-            if (dataText) createData.text = dataText
-            return ajax(dataType, dataKategori, dataId).then(function (response) {
-                $(body).html(response)
-                if (dataType == 'item') {
-                    createData = selectAdditional(createData)
-                } else {
-                    var datatables = $('table.table_opsi_menu').DataTable()
-                    createData.opsi_menu = []
-                    // $('.opsi_menu_text').each(function (key, value) {
-                    //     createData.opsi_menu.push({
-                    //         id: $(value).data('dataid'),
-                    //         menuid: $(value).data('menuid'),
-                    //         nama_item: $(value).data('text'),
-                    //         id_item: null,
-                    //         id_kategori: $(value).data('kategori'),
-                    //         item_type: null,
-                    //         item_size: null,
-                    //         additional_menu: []
-                    //     })
-                    // })
-                }
-                return response
-            })
-        }
-        function openAdditionalMenu (event) {
-            $('#additionalMenu').modal()
-            setCreateData(event, createData, '#additionalMenuBody').then( function (response) {
-                $('#additionalMenu').on('hidden.bs.modal', function () {
-                    $('#saveMenu').off('click')
-                    $('#additionalMenuBody').html('')
-                    turnOffSelectAdditional()
-                })
-            })
-            $('#saveMenu').on('click', function () {
-                var buttonTypes = $('button.btn-item-type')
-                if (buttonTypes.length > 0) {
-                    if (!createData.item_type) {
-                        sweetAlert(
-                            '',
-                            `Silahkan pilih menu type terlebih dahulu`,
-                            'warning'
-                        )
-                        return;
-                    }
-                }
-                var unselected_menu_type = 0
-                $('button.opsi_menu_text').each(function(index, val) {
-                    var menu_type = Number($(val).data('menu_type'))
-                    var selected_menu_type = Number($(val).data('selected_menu_type'))
-                    if (menu_type > 0 && selected_menu_type == 0) unselected_menu_type += 1;
-                })
-                if (unselected_menu_type > 0) {
-                    sweetAlert(
-                            '',
-                            `Silahkan pilih menu type terlebih dahulu`,
-                            'warning'
-                        )
-                    return;
-                }
-                createData.opsi_menu = []
-                $('.menu_terpilih').each(function (key, val) {
-                    var menuTerpilih = $(val).data('opsimenu')
-                    createData.opsi_menu.push(menuTerpilih)
-                })
-                if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
-                    sweetAlert(
-                            '',
-                            `Silahkan pilih opsi menu terlebih dahulu`,
-                            'warning'
-                        )
-                    return;
-                }
-                $.ajax({
-                    url: '{{ url("pembayaran/create") }}',
-                    dataType : 'json',
-                    type: 'post',
-                    data: createData,
-                    success:function(response) {
-                        $('#additionalMenu, #menuModal').modal('hide')
-                        $('#additionalMenuBody').html('')
-                        loadInvoice();
-                    }
-                });
-            })
-        }
-        function selectedAdditionalMenu (availableOpsiMenu) {
-            $('.btn-item-type').each( function (key, element) {
-                var condition = availableOpsiMenu.item_type && ($(element).data('id') == availableOpsiMenu.item_type.id)
-                if (condition) {
-                    $(element).children('.item-check').html('&check;')
-                }
-            })
-            $('.btn-item-size').each( function (key, element) {
-                var condition = availableOpsiMenu.item_size && ($(element).data('id') == availableOpsiMenu.item_size.id)
-                if (condition) {
-                    $(element).children('.item-check').html('&check;')
-                }
-            })
-            $('.additional_menu_item').each( function (key, element) {
-                availableOpsiMenu.additional_menu.forEach( function (value) {
-                    if (value.id == element.value) {
-                        $(element).attr('checked', true)
-                    }
-                })
-            })
-            return availableOpsiMenu
-        }
-        function turnOffSelectAdditional () {
-            $('.btn-item-type, .btn-item-size').off('click')
-            $('.additional_menu_item').off('change')
-        }
-        
-        function additionalMenuTemplate(text, harga) {
-            var additionalMenuTemplate = `
-                <button type="button" class="btn btn-outline-primary w-auto mb-2" disabled>
-                    ${text} <span class="badge badge-info">+ Rp. ${harga}</span>
-                </button>
-            `
-            return additionalMenuTemplate
-        }
-        function saveMenuPaket (createData, opsi_menu, event) {
-            const menu_exists = createData.opsi_menu.filter(function (item) {
-                return item.menuid == opsi_menu.menuid
-            })
-            if (menu_exists.length > 0) opsi_menu.menuid = `${opsi_menu.id}_${menu_exists.length}`
-            $(event).next().children('.additional_menu_list').html('')
-            var additionalText = ''
-            opsi_menu.additional_menu.forEach( function (value) {
-                $(event).next().children('.additional_menu_list').append(additionalMenuTemplate(value.text, value.harga))
-                additionalText = `${additionalText} <span class="badge badge-info">${value.text}</span>`
-            })
-            $('#additionalMenuPaket').modal('hide')
-            $('#additionalMenuPaketBody').html('')
-            var text = $(event).data('text')
-            // $(event).html(text)
-            // if (opsi_menu.item_type) $(event).html(opsi_menu.item_type.text)
-            if (opsi_menu.item_type) text = opsi_menu.item_type.text
-            var menu_terpilih = `
-                <tr class="menu_terpilih" data-opsimenu='${JSON.stringify(opsi_menu)}'>
-                    <td>
-                        <h6>
-                            <span class="badge badge-secondary">
-                                <button type="button" class="close remove-diskon btn-sm" aria-label="Close" onClick="removeMenu(this, ${opsi_menu.menuid})">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </span>
-                            ${text}
-                        </h6>
-                    </td>
-                    <td>${additionalText}</td>
-                </tr>
-            `
-            $(`tr.tr_daftar_menu_terpilih_${opsi_menu.id_kategori}`).remove()
-            $(`.daftar_menu_terpilih_${opsi_menu.id_kategori}`).append(menu_terpilih)
-            createData.opsi_menu.push(opsi_menu)
-            return createData
-        }
-        function removeMenu(event, menuid) {
-            $(event).parents('.menu_terpilih').remove()
-        }
-        var prevMenuPaket = 0
-        function openAdditionalMenuPaket (event) {
-            var dataType = $(event).data('type')
-            var dataKategori = $(event).data('kategori')
-            var jumlahMenu = $(event).data('jumlah_menu')
-            var jumlahMenuTerpilih = $(`.daftar_menu_terpilih_${dataKategori}`).children('.menu_terpilih')
-            console.log(jumlahMenuTerpilih.length, jumlahMenu)
-            if (jumlahMenuTerpilih.length >= jumlahMenu) {
-                sweetAlert(
-                    '',
-                    `Jumlah Maksimal Menu Yang Dapat Dipilih ${jumlahMenu}`,
-                    'warning'
-                )
-                return
-            }
-            var dataId = $(event).data('dataid')
-            var menuid = $(event).data('menuid')
-            var availableOpsiMenu = createData.opsi_menu.filter(function (opsi_menu) {
-                return opsi_menu.menuid == menuid
-            })
-            var condition = false
-            if (prevMenuPaket == dataId) condition = true
-            prevMenuPaket = dataId
-            var opsi_menu = {
-                id: dataId,
-                menuid: menuid,
-                nama_item: $(event).data('text'),
-                id_item: dataId,
-                id_kategori: $(event).data('kategori'),
-                item_type: null,
-                item_size: null,
-                additional_menu: []
-            }
-            $('#additionalMenuPaketBody').html(loadingAdditionalMenu)
-            ajax(dataType, dataKategori, dataId, 1).then(function (response) {
-                $('#additionalMenuPaketBody').html(response)
-                if (availableOpsiMenu.length > 0) opsi_menu = selectedAdditionalMenu(availableOpsiMenu[0])
-                opsi_menu = selectAdditional(opsi_menu)
-            })
-            $('#saveMenuPaket').on('click', function (element) {
-                var buttonTypes = $('button.btn-item-type')
-                if (buttonTypes.length > 0) {
-                    if (!opsi_menu.item_type) {
-                        sweetAlert(
-                            '',
-                            `Silahkan pilih menu type terlebih dahulu`,
-                            'warning'
-                        )
-                        return;
-                    }
-                }
-                $(event).data('selected_menu_type', 0)
-                if (opsi_menu.item_type) $(event).data('selected_menu_type', 1)
-                createData = saveMenuPaket(createData, opsi_menu, event)
-            })
-            $('#additionalMenuPaket').on('hidden.bs.modal', function (event) {
-                $('#additionalMenuPaketBody').html('')
-                $('#saveMenuPaket').off('click')
-                turnOffSelectAdditional()
-            })
-            $('#additionalMenuPaket').modal()
-        }
-
-        function saveMenu(event) {
-            var dataId = $(event).data('dataid')
-            var type = $(event).data('type')
-            var inputAdditionalMenu = []
-            var additionalMenuItem = $('.additional-menu-form').serializeArray()
-            if (type === 'item') {
-                for (let index = 0; index < additionalMenuItem.length; index++) {
-                    const element = additionalMenuItem[index];
-                    inputAdditionalMenu.push(element.value)
-                }
-            } else {
-                for (let index = 0; index < additionalMenuItem.length; index++) {
-                    const element = additionalMenuItem[index];
-                }
-            }
-            add(dataId, type, additionalMenuItem)
-            $('#additionalMenu, #menuModal').modal('hide')
-        }
-        var selectedDiskonValue = 0
-        $('.btn-add-diskon').on('click', function (event) {
-            var voucherId = $(this).data('dataid')
-            var voucherValue = $(this).data('value')
-            if (selectedDiskonValue != voucherValue) {
-                selectedDiskonValue = voucherValue
-                var diskonValue = new Intl.NumberFormat('id-ID').format(voucherValue)
-                $('td.diskon').html(`
-                    <input type="hidden" name="diskon_value" value="${voucherId}" />
-                    <h6>
-                      <span class="diskon_value">${diskonValue}</span>
-                      <span class="badge badge-secondary">
-                        <button type="button" class="close remove-diskon" aria-label="Close">
-                          <span aria-hidden="true">&times;</span>
-                        </button>
-                      </span>
-                    </h6>
-                `)
-                var subtotal = Number(tanpaTitik($('td.total-harga').html()))
-                var total = subtotal - voucherValue
-                $('td.total-harga').html(new Intl.NumberFormat('id-ID').format(total))
-                uangKembalian()
-                splitUangKembali()
-                $(buttonPembayaran).trigger('click')
-                $('.btn-print-resi').data('id-diskon', voucherId)
-                $('button.remove-diskon').on('click', function (event) {
-                    removeDiskon()
-                })
-            }
-        })
-        function removeDiskon () {
-            selectedDiskonValue = 0
-            var diskon = Number(tanpaTitik($('span.diskon_value').html()));
-            var total = Number(tanpaTitik($('td.total-harga').html())) + diskon
-            $('td.diskon').html('-');
-            $('td.total-harga').html(new Intl.NumberFormat('id-ID').format(total))
-            uangKembalian()
-            splitUangKembali()
-            $(buttonPembayaran).trigger('click')
-            $('.btn-print-resi').removeData('id-diskon')
-        }
-        var xhr
-        function reduceQty(event, id) {
-            var qty = Number($(event).siblings('.invoice-qty').text());
-            if (qty > 1) {
-                if (xhr) xhr.abort()
-                qty -= 1
-                $(event).siblings('.invoice-qty').html(qty)
-                updateQty(qty, id)
-            }
-        }
-        function addQty(event, id) {
-            if (xhr) xhr.abort()
-            var qty = Number($(event).siblings('.invoice-qty').text());
-            qty += 1
-            $(event).siblings('.invoice-qty').html(qty)
-            updateQty(qty, id)
-        }
-        function updateQty(qty, id) {
-            xhr = $.ajax({
-                url: '{{ url("pembayaran/edit/") }}' + `/${id}`,
-                method: 'PATCH',
-                data: {
-                    _token: "{{ csrf_token() }}",
-                    qty: qty
-                },
-                success: function (success) {
-                    loadInvoice()
-                },
-                error: function (error) {
-
-                }
-            })
-        }
-        function deleteMenu(event) {
-            var id = $(event).data('id')
-            $.ajax({
-                url: '{{ url("pembayaran") }}'+"/"+id,
-                method: 'DELETE',
-                data: {
-                    "_token": "{{ csrf_token() }}",
-                    },
-                success: function (response) {
-                    console.log("Deleted");
-                    id = 0
-                    loadInvoice();
-                }
-            });
-        }
-    </script>
 @endsection

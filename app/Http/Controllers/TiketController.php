@@ -47,14 +47,38 @@ class TiketController extends Controller
         // dd(@session('id_store'));
         $metode = DB::table('pos_payment')->get();
 
+        $bar = 0;
+        $pizza = 100;
+        $pasta = 200;
+        $paket = 300;
+
         $item = DB::table('pos_product_item')
             ->join('pos_product_kategori', 'pos_product_item.id_kategori', '=', 'pos_product_kategori.id_kategori')
-            ->select('pos_product_item.*', 'pos_product_kategori.nama_kategori')    
+            ->select('pos_product_item.*', 'pos_product_kategori.nama_kategori', 'pos_product_kategori.is_paket')    
             ->where('id_store', $id_store)
             ->orderBy('id_kategori', 'asc')
             ->orderBy('nama_item', 'asc')
             ->get();
-        // return view('welcome');
+        foreach ($item as $key => $map) {
+            switch ($map->id_kategori) {
+                case 18:
+                    $item[$key]->nomor = $bar;
+                    $bar += 1;
+                    break;
+                case 19:
+                    $item[$key]->nomor = $pizza;
+                    $pizza += 1;
+                    break;
+                case 20:
+                    $item[$key]->nomor = $pasta;
+                    $pasta += 1;
+                    break;
+                case 21:
+                    $item[$key]->nomor = $paket;
+                    $paket += 1;
+                    break;
+            }
+        }
         $n = 0;
         $start = 0;
         // $array=[];
@@ -72,6 +96,7 @@ class TiketController extends Controller
 
         $voucher = DB::table('pos_diskon')
                 ->where('id_store', $id_store)
+                ->where('nominal', '>', 0)
                 ->get();
 
         $paket = DB::table('pos_product_paket')

@@ -71,6 +71,8 @@ Route::group(['middleware'=>'is_login_middleware'],function(){
 
     Route::get('pembayaran/test_printer1','PembayaranController@test_printer1');
     Route::get('pembayaran/test_print','PembayaranController@test_print');
+
+    Route::get('additional-menu', 'AdditionalMenuController@getAdditionalMenu');
 });
 
 
