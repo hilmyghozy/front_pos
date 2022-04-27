@@ -128,12 +128,12 @@ class DoPrintResiService
         // $date = "Monday 6th of April 2015 02:56:25 PM";
 
         /* Start the printer */
-        // $logo = EscposImage::load("resources/escpos-php.png", false);
+        $logo = EscposImage::load("resources/escpos-php.png", false);
         $printer = new Printer($connector);
 
         /* Print top logo */
-        // $printer -> setJustification(Printer::JUSTIFY_CENTER);
-        // $printer -> graphics($logo);
+        $printer -> setJustification(Printer::JUSTIFY_CENTER);
+        $printer -> graphics($logo);
 
         /* Name of shop */
         $printer->setJustification(Printer::JUSTIFY_CENTER);
@@ -195,7 +195,7 @@ class DoPrintResiService
         $printer->feed();
         $printer->selectPrintMode();
         $printer->feed(2);
-        return Log::info([$printer->getPrintConnector()]);
+        // return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
