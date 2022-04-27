@@ -516,23 +516,23 @@
         });
 
         //delete_item
-        $(document).on("click",".btn-trash",function(button){
-            var id = button.target.dataset.id
-            x = "pembayaran/"+id;
+        // $(document).on("click",".btn-trash",function(button){
+        //     var id = button.target.dataset.id
+        //     x = "pembayaran/"+id;
 
-            if(id>0){
-                    $.ajax({
-                    url: '{{ url("pembayaran") }}'+"/"+id,
-                    method: 'DELETE',
-                    data: {
-                        "_token": "{{ csrf_token() }}",
-                        },
-                    success: function (response) {
-                        console.log("Deleted");
-                        id = 0
-                        loadInvoice();
-                    }
-                });
+        //     if(id>0){
+                // $.ajax({
+                //     url: '{{ url("pembayaran") }}'+"/"+id,
+                //     method: 'DELETE',
+                //     data: {
+                //         "_token": "{{ csrf_token() }}",
+                //         },
+                //     success: function (response) {
+                //         console.log("Deleted");
+                //         id = 0
+                //         loadInvoice();
+                //     }
+                // });
                 // $('#bagan-diskon').load('{{ url('pembayaran/load_diskon') }}');
                 // $('#tab-sidemenu').load('{{ url('pembayaran') }}');
                 // $('#invoice').load('{{ url('pembayaran') }}');
@@ -540,9 +540,9 @@
                 // $('.table-pembayaran tr td #n_subtotal').load('{{ url('pembayaran/subtotal') }}');
                 // $('tr td.total-harga').load('{{ url('pembayaran/total') }}');
 
-                removeClassSidemenu();
-            }
-        });
+                // removeClassSidemenu();
+        //     }
+        // });
 
         //hapus_qty
         $(document).on("click","#btn-next",function(){
@@ -1242,7 +1242,6 @@
                         setCreateDataToNull()
                         setCreateData(select.target.selectedOptions, createData, '#sel_order_revisi_additional_option')
                     })
-                    console.log(createData)
                     validasiModalOrderDetailEditItem()
                 },
                 error: function (error) {
@@ -1278,10 +1277,22 @@
 
         function validasiModalOrderDetailEditItem () {
             $('#validasi_modalOrderDetailEditItem').on('click', function (button) {
+                if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
+                    sweetAlert(
+                            '',
+                            `Silahkan pilih opsi menu terlebih dahulu`,
+                            'warning'
+                        )
+                    return;
+                }
                 var buttonTypes = $('button.btn-item-type')
                 if (buttonTypes.length > 0) {
                     if (!createData.item_type) {
-                        alert('Silahkan pilih menu type terlebih dahulu')
+                        sweetAlert(
+                            '',
+                            `Silahkan pilih menu type terlebih dahulu`,
+                            'warning'
+                        )
                         return;
                     }
                 }
@@ -1292,7 +1303,11 @@
                     if (menu_type > 0 && selected_menu_type == 0) unselected_menu_type += 1;
                 })
                 if (unselected_menu_type > 0) {
-                    alert('Silahkan pilih menu type terlebih dahulu')
+                    sweetAlert(
+                        '',
+                        `Silahkan pilih menu type terlebih dahulu`,
+                        'warning'
+                    )
                     return;
                 }
                 button.preventDefault()
@@ -1329,7 +1344,6 @@
                             data_edit_order.createData.push(updateResponse)
                         }
                         if (createResponse != null) data_edit_order.createData.push(createResponse)
-                        console.log(data_edit_order)
                         $.ajax({
                             url: '{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp,
                             success: function (response) {
@@ -1388,7 +1402,19 @@
         $(document).on("click","#validasi_modalOrderDetailAddItem",function(){
             var html = $('#body_modalOrderEdit').html()
             var kode_temp = $('#id_orderEdit').text();
-            
+            createData.opsi_menu = []
+            $('.menu_terpilih').each(function (key, val) {
+                var menuTerpilih = $(val).data('opsimenu')
+                createData.opsi_menu.push(menuTerpilih)
+            })
+            if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
+                sweetAlert(
+                        '',
+                        `Silahkan pilih opsi menu terlebih dahulu`,
+                        'warning'
+                    )
+                return;
+            }
             var id_item = $('#sel_order_add').val();
             var qty_item = $('#qty_order_add').val();
             var createDataEdit = createData
@@ -1406,7 +1432,7 @@
                     $('#body_modalOrderEdit').load('{{ url('pembayaran/detail_belum_bayar_edit') }}/'+kode_temp);
                     if (response !== 0) {
                         data_edit_order.createData.push(response);
-                        console.log(data_edit_order)
+                        $('#additionalMenuBody').html('')
                     }
                     $('#modalOrderAddItem').modal('hide');
                 }, error: function (error) {
@@ -1499,7 +1525,6 @@
             }
         }
         async function ajax(dataType, dataKategori, dataId, paket = 0) {
-            console.log(createData)
             return $.ajax({
                 url: '{{ url("additional-menu") }}',
                 data: {
@@ -1549,7 +1574,6 @@
             return additionalMenu;
         }
         function selectAdditional (data) {
-            console.log(data)
             $('.btn-item-type').on('click', function () {
                 data.item_type = getItem(data.item_type, this)
             })
@@ -1577,19 +1601,20 @@
                 if (dataType == 'item') {
                     createData = selectAdditional(createData)
                 } else {
+                    var datatables = $('table.table_opsi_menu').DataTable()
                     createData.opsi_menu = []
-                    $('.opsi_menu_text').each(function (key, value) {
-                        createData.opsi_menu.push({
-                            id: $(value).data('dataid'),
-                            menuid: $(value).data('menuid'),
-                            nama_item: $(value).data('text'),
-                            id_item: null,
-                            id_kategori: $(value).data('kategori'),
-                            item_type: null,
-                            item_size: null,
-                            additional_menu: []
-                        })
-                    })
+                    // $('.opsi_menu_text').each(function (key, value) {
+                    //     createData.opsi_menu.push({
+                    //         id: $(value).data('dataid'),
+                    //         menuid: $(value).data('menuid'),
+                    //         nama_item: $(value).data('text'),
+                    //         id_item: null,
+                    //         id_kategori: $(value).data('kategori'),
+                    //         item_type: null,
+                    //         item_size: null,
+                    //         additional_menu: []
+                    //     })
+                    // })
                 }
                 return response
             })
@@ -1599,6 +1624,7 @@
             setCreateData(event, createData, '#additionalMenuBody').then( function (response) {
                 $('#additionalMenu').on('hidden.bs.modal', function () {
                     $('#saveMenu').off('click')
+                    $('#additionalMenuBody').html('')
                     turnOffSelectAdditional()
                 })
             })
@@ -1606,7 +1632,11 @@
                 var buttonTypes = $('button.btn-item-type')
                 if (buttonTypes.length > 0) {
                     if (!createData.item_type) {
-                        alert('Silahkan pilih menu type terlebih dahulu')
+                        sweetAlert(
+                            '',
+                            `Silahkan pilih menu type terlebih dahulu`,
+                            'warning'
+                        )
                         return;
                     }
                 }
@@ -1617,16 +1647,33 @@
                     if (menu_type > 0 && selected_menu_type == 0) unselected_menu_type += 1;
                 })
                 if (unselected_menu_type > 0) {
-                    alert('Silahkan pilih menu type terlebih dahulu')
+                    sweetAlert(
+                            '',
+                            `Silahkan pilih menu type terlebih dahulu`,
+                            'warning'
+                        )
                     return;
                 }
-                $('#additionalMenu, #menuModal').modal('hide')
+                createData.opsi_menu = []
+                $('.menu_terpilih').each(function (key, val) {
+                    var menuTerpilih = $(val).data('opsimenu')
+                    createData.opsi_menu.push(menuTerpilih)
+                })
+                if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
+                    sweetAlert(
+                            '',
+                            `Silahkan pilih opsi menu terlebih dahulu`,
+                            'warning'
+                        )
+                    return;
+                }
                 $.ajax({
                     url: '{{ url("pembayaran/create") }}',
                     dataType : 'json',
                     type: 'post',
                     data: createData,
                     success:function(response) {
+                        $('#additionalMenu, #menuModal').modal('hide')
                         $('#additionalMenuBody').html('')
                         loadInvoice();
                     }
@@ -1669,28 +1716,60 @@
             return additionalMenuTemplate
         }
         function saveMenuPaket (createData, opsi_menu, event) {
-            createData.opsi_menu = createData.opsi_menu.filter(function (item) {
-                return item.menuid != opsi_menu.menuid
+            const menu_exists = createData.opsi_menu.filter(function (item) {
+                return item.menuid == opsi_menu.menuid
             })
-            createData.opsi_menu.push(opsi_menu)
+            if (menu_exists.length > 0) opsi_menu.menuid = `${opsi_menu.id}_${menu_exists.length}`
             $(event).next().children('.additional_menu_list').html('')
+            var additionalText = ''
             opsi_menu.additional_menu.forEach( function (value) {
                 $(event).next().children('.additional_menu_list').append(additionalMenuTemplate(value.text, value.harga))
+                additionalText = `${additionalText} <span class="badge badge-info">${value.text}</span>`
             })
             $('#additionalMenuPaket').modal('hide')
             $('#additionalMenuPaketBody').html('')
             var text = $(event).data('text')
-            $(event).html(text)
-            if (opsi_menu.item_type) $(event).html(opsi_menu.item_type.text)
-            // var additionalText = ''
-            // if (opsi_menu.item_type) additionalText += ` ${opsi_menu.item_type.text} `
-            // if (opsi_menu.item_size) additionalText += ` ${opsi_menu.item_size.text} `
-            // if (opsi_menu.item_size || opsi_menu.item_type) text = `${text} (${additionalText})`
             // $(event).html(text)
-            return createData;
+            // if (opsi_menu.item_type) $(event).html(opsi_menu.item_type.text)
+            if (opsi_menu.item_type) text = opsi_menu.item_type.text
+            var menu_terpilih = `
+                <tr class="menu_terpilih" data-opsimenu='${JSON.stringify(opsi_menu)}'>
+                    <td>
+                        <h6>
+                            <span class="badge badge-secondary">
+                                <button type="button" class="close remove-diskon btn-sm" aria-label="Close" onClick="removeMenu(this, ${opsi_menu.menuid})">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </span>
+                            ${text}
+                        </h6>
+                    </td>
+                    <td>${additionalText}</td>
+                </tr>
+            `
+            $(`tr.tr_daftar_menu_terpilih_${opsi_menu.id_kategori}`).remove()
+            $(`.daftar_menu_terpilih_${opsi_menu.id_kategori}`).append(menu_terpilih)
+            createData.opsi_menu.push(opsi_menu)
+            return createData
+        }
+        function removeMenu(event, menuid) {
+            $(event).parents('.menu_terpilih').remove()
         }
         var prevMenuPaket = 0
         function openAdditionalMenuPaket (event) {
+            var dataType = $(event).data('type')
+            var dataKategori = $(event).data('kategori')
+            var jumlahMenu = $(event).data('jumlah_menu')
+            var jumlahMenuTerpilih = $(`.daftar_menu_terpilih_${dataKategori}`).children('.menu_terpilih')
+            console.log(jumlahMenuTerpilih.length, jumlahMenu)
+            if (jumlahMenuTerpilih.length >= jumlahMenu) {
+                sweetAlert(
+                    '',
+                    `Jumlah Maksimal Menu Yang Dapat Dipilih ${jumlahMenu}`,
+                    'warning'
+                )
+                return
+            }
             var dataId = $(event).data('dataid')
             var menuid = $(event).data('menuid')
             var availableOpsiMenu = createData.opsi_menu.filter(function (opsi_menu) {
@@ -1699,18 +1778,6 @@
             var condition = false
             if (prevMenuPaket == dataId) condition = true
             prevMenuPaket = dataId
-            var dataType = $(event).data('type')
-            var dataKategori = $(event).data('kategori')
-            var opsi_menu = {
-                id: dataId,
-                menuid: menuid,
-                nama_item: $(event).data('text'),
-                id_item: dataId,
-                id_kategori: $(event).data('kategori'),
-                item_type: null,
-                item_size: null,
-                additional_menu: []
-            }
             var opsi_menu = {
                 id: dataId,
                 menuid: menuid,
@@ -1731,7 +1798,11 @@
                 var buttonTypes = $('button.btn-item-type')
                 if (buttonTypes.length > 0) {
                     if (!opsi_menu.item_type) {
-                        alert('Silahkan pilih menu type terlebih dahulu')
+                        sweetAlert(
+                            '',
+                            `Silahkan pilih menu type terlebih dahulu`,
+                            'warning'
+                        )
                         return;
                     }
                 }
@@ -1740,6 +1811,7 @@
                 createData = saveMenuPaket(createData, opsi_menu, event)
             })
             $('#additionalMenuPaket').on('hidden.bs.modal', function (event) {
+                $('#additionalMenuPaketBody').html('')
                 $('#saveMenuPaket').off('click')
                 turnOffSelectAdditional()
             })
@@ -1837,6 +1909,21 @@
 
                 }
             })
+        }
+        function deleteMenu(event) {
+            var id = $(event).data('id')
+            $.ajax({
+                url: '{{ url("pembayaran") }}'+"/"+id,
+                method: 'DELETE',
+                data: {
+                    "_token": "{{ csrf_token() }}",
+                    },
+                success: function (response) {
+                    console.log("Deleted");
+                    id = 0
+                    loadInvoice();
+                }
+            });
         }
     </script>
 @endsection

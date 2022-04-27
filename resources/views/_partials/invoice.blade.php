@@ -23,7 +23,7 @@
                             @foreach ($pembayaran as $key => $data)
                             <tr class="{{ $key > 0 && ($key+1)%2 == 0 ? 'table-secondary' : ''}}">
                                 <th scope="row" class="align-baseline h-auto">
-                                    <button type="button" class="btn-sm btn-red btn-trash w-auto" data-id="{{ $data->id }}">
+                                    <button type="button" class="btn-sm btn-red btn-trash w-auto" data-id="{{ $data->id }}" onClick="deleteMenu(this)">
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </th>

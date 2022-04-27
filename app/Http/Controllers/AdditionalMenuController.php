@@ -46,7 +46,9 @@ class AdditionalMenuController extends Controller
             if ($item) {
                 $product_opsi_menu = DB::table('pos_product_item_menu')
                     ->join('pos_product_item', 'pos_product_item.id_item', '=', 'pos_product_item_menu.id_item_paket')
+                    ->join('pos_product_kategori', 'pos_product_kategori.id_kategori', '=', 'pos_product_item_menu.id_kategori')
                     // ->select('pos_product_item_menu.jumlah', 'pos_product_item_menu.id_item_paket as id_item', 'pos_product_item.nama_item')
+                    ->select('pos_product_item_menu.*', 'pos_product_item.*', 'pos_product_kategori.nama_kategori')
                     ->where('pos_product_item_menu.id_item', $id)
                     ->get();
                 $item = 0;
@@ -63,7 +65,9 @@ class AdditionalMenuController extends Controller
                     $item += 1;
                 }
             }
-            $view = view('_partials/additional-menu-packet', compact('opsi_menu'));
+            $n_opsi_menu = collect($opsi_menu)->groupBy('nama_kategori')->all();
+            // return response()->json($n_opsi_menu);
+            $view = view('_partials/additional-menu-packet', compact('opsi_menu', 'n_opsi_menu'));
         }
         return $view;
     }

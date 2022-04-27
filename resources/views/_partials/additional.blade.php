@@ -1,6 +1,6 @@
 <!-- Modal -->
 <div class="modal fade" id="additionalMenu" tabindex="-1" aria-labelledby="additionalMenuLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close w-auto" data-dismiss="modal" aria-label="Close">

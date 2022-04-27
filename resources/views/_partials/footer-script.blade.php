@@ -473,7 +473,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderEdit" tabindex="-1" role="dialog" aria-labelledby="modalOrderEditLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -511,7 +511,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderEditItem" tabindex="-1" role="dialog" aria-labelledby="modalOrderEditItemLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -546,7 +546,7 @@
 </div>
 
 <div class="modal fade" id="modalOrderAddItem" tabindex="-1" role="dialog" aria-labelledby="modalOrderAddItemLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
@@ -621,7 +621,7 @@
 </div>
 
 <div class="modal fade" id="modalNoteEdit" tabindex="-1" role="dialog" aria-labelledby="modalNoteEditLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <div class="container-fluid">
