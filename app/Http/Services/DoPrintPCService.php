@@ -95,18 +95,18 @@ class DoPrintPCService
         // $date = "Monday 6th of April 2015 02:56:25 PM";
 
         /* Start the printer */
-        $logo = EscposImage::load("resources/escpos-php.png", false);
+        // $logo = EscposImage::load("resources/escpos-php.png", false);
         $printer = new Printer($connector);
 
         /* Print top logo */
         $printer -> setJustification(Printer::JUSTIFY_CENTER);
-        $printer -> graphics($logo);
+        // $printer -> graphics($logo);
 
         /* Name of shop */
         $printer->setJustification(Printer::JUSTIFY_CENTER);
         $printer->selectPrintMode(Printer::MODE_DOUBLE_WIDTH);
         $logo = EscposImage::load("images/icon/mediumLogo.png", false);
-        // $printer->bitImageColumnFormat($logo, Printer::IMG_DOUBLE_WIDTH | Printer::IMG_DOUBLE_HEIGHT);
+        $printer->bitImageColumnFormat($logo, Printer::IMG_DOUBLE_WIDTH | Printer::IMG_DOUBLE_HEIGHT);
         $printer->selectPrintMode();
         $printer->text("Jln.Raja Isa Komp.Ruko KDA Junction\nBlok.D No.05");
         $printer->feed();
