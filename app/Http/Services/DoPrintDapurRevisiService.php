@@ -93,11 +93,6 @@ class DoPrintDapurRevisiService
         $tanggal = date('d-m-Y H:i');
         $nama_store = session('nama_store');
         
-        if ($this->printer->print_by == "nama") {
-            $connector = new WindowsPrintConnector($ip_printer);
-        } else {
-            $connector = new NetworkPrintConnector($ip_printer);
-        }
         /* Information for the receipt */
         $data_lama = [];
         $data_dihapus = [];
@@ -135,11 +130,32 @@ class DoPrintDapurRevisiService
             $nama_item = isset($item->nama_item) ? $item->nama_item : $item['nama_item'];
             $qty = isset($item->qty) ? $item->qty : $item->qty_item;
             $additional_menu = isset($item->additional_menu) ? $item->additional_menu : $item['additional_menu'];
-            array_push($data_tambahan, (object)[
-                'name' => $nama_item,
-                'qty' => $qty,
-                'additional_menu' => $additional_menu
-            ]);
+            $item_lama_exists = $this->filterExists($data_lama, $nama_item, $additional_menu);
+            $item_revisi_exists = $this->filterExists($data_revisi, $nama_item, $additional_menu);
+            $condition = false;
+            if ($item_lama_exists && $item_revisi_exists) {
+                $condition = $item_lama_exists->qty == ($qty + $item_revisi_exists->qty);
+            }
+            if ($condition) {
+                $data_lama = $this->filterExcept($data_lama, $item_lama_exists);
+                $data_revisi = $this->filterExcept($data_revisi, $item_revisi_exists);
+            } else {
+                array_push($data_tambahan, (object)[
+                    'name' => $nama_item,
+                    'qty' => $qty,
+                    'additional_menu' => $additional_menu
+                ]);
+            }
+        }
+        $condition = (count($data_dihapus) == 0) && (count($data_tambahan) == 0) && (count($data_lama) == 0) && (count($data_revisi) == 0);
+        if ($condition) {
+            return;
+        }
+
+        if ($this->printer->print_by == "nama") {
+            $connector = new WindowsPrintConnector($ip_printer);
+        } else {
+            $connector = new NetworkPrintConnector($ip_printer);
         }
 
         $desc = new Item('Nama Item', 'Qty');
@@ -245,11 +261,32 @@ class DoPrintDapurRevisiService
 
         $printer->feed();
 
-        return Log::info([$printer->getPrintConnector()]);
+        // return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();
 
         $printer->close();
+    }
+
+    private function filterExists($data = [], $nama_item = '', $additional_menu = [])
+    {
+        return collect($data)->filter(function($value, $key) use($nama_item, $additional_menu) {
+            $similar_name = $nama_item == $value->name;
+            $similar_additional_menu = $additional_menu == $value->additional_menu;
+            $condition = $similar_additional_menu && $similar_name;
+            if ($condition) return $condition;
+        })->first();
+    }
+
+    private function filterExcept($data_lama, $item)
+    {
+        return collect($data_lama)->filter(function($value) use ($item) {
+            $similar_name = $item->name == $value->name;
+            $similar_additional_menu = $item->additional_menu == $value->additional_menu;
+            $similar_qty = $item->qty == $value->qty;
+            $condition = $similar_additional_menu && $similar_name && $similar_qty;
+            if (!$condition) return true;
+        })->values();
     }
 }

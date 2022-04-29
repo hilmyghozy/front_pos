@@ -855,6 +855,7 @@
                 $('#text-nokartu tr td input').val();
                 $('#metodePembayaran b.plus-split').addClass("hidden");
                 $('#split-bill-clicked').val('0');
+                $('#bayar-input').focus()
                 uangKembalian();
                 
             }else if($(this).data('tipe')==2){
@@ -1126,8 +1127,11 @@
             $('#pembayaranModal').on('hidden.bs.modal', function () {
                 removeDiskon();
             })
+            var paymentMethod = $('#tipe-payment-method');
+            console.log(paymentMethod[0].value == 1)
             splitUangKembali();
             uangKembalian();
+            if (paymentMethod[0].value == 1) $('#bayar-input').focus()
         });
 
         function print_resi(event){
@@ -1277,6 +1281,11 @@
 
         function validasiModalOrderDetailEditItem () {
             $('#validasi_modalOrderDetailEditItem').on('click', function (button) {
+                createData.opsi_menu = []
+                $('.menu_terpilih').each(function (key, val) {
+                    var menuTerpilih = $(val).data('opsimenu')
+                    createData.opsi_menu.push(menuTerpilih)
+                })
                 if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
                     sweetAlert(
                             '',
@@ -1414,6 +1423,19 @@
                         'warning'
                     )
                 return;
+            } else {
+                var types = $('button.btn-item-type')
+                console.log(types)
+                if (types.length > 0) {
+                    if (!createData.item_type) {
+                        sweetAlert(
+                            '',
+                            `Silahkan pilih menu type terlebih dahulu`,
+                            'warning'
+                        )
+                        return;
+                    }
+                }
             }
             var id_item = $('#sel_order_add').val();
             var qty_item = $('#qty_order_add').val();
@@ -1659,13 +1681,33 @@
                     var menuTerpilih = $(val).data('opsimenu')
                     createData.opsi_menu.push(menuTerpilih)
                 })
-                if (createData.type === 'paket' && createData.opsi_menu.length === 0) {
+                var textError = []
+                if (createData.type === 'paket') {
+                    if (createData.opsi_menu.length === 0) {
+                        sweetAlert(
+                                '',
+                                `Silahkan pilih opsi menu terlebih dahulu`,
+                                'warning'
+                            )
+                        return;
+                    }
+                    $('tbody[class*="daftar_menu_terpilih_"]').each(function(key, val) {
+                        var jumlahMenuKategori = $(val).data('jumlah')
+                        var namaKategori = $(val).data('kategori')
+                        var jumlahMenuTerpilih = $(val).children('.menu_terpilih')
+                        if (jumlahMenuTerpilih.length < jumlahMenuKategori) {
+                            textError.push(`${jumlahMenuKategori - jumlahMenuTerpilih.length} menu ${namaKategori}`);
+                        }
+                    })
+                }
+                if (textError.length > 0) {
+                    textError = textError.join(', ')
                     sweetAlert(
-                            '',
-                            `Silahkan pilih opsi menu terlebih dahulu`,
-                            'warning'
-                        )
-                    return;
+                        '',
+                        `Silahkan pilih ${textError} terlebih dahulu`,
+                        'warning'
+                    )
+                    return
                 }
                 $.ajax({
                     url: '{{ url("pembayaran/create") }}',
@@ -1735,14 +1777,12 @@
             var menu_terpilih = `
                 <tr class="menu_terpilih" data-opsimenu='${JSON.stringify(opsi_menu)}'>
                     <td>
-                        <h6>
-                            <span class="badge badge-secondary">
-                                <button type="button" class="close remove-diskon btn-sm" aria-label="Close" onClick="removeMenu(this, ${opsi_menu.menuid})">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </span>
-                            ${text}
-                        </h6>
+                        <span class="badge badge-secondary">
+                            <button type="button" class="close remove-diskon btn-xs" aria-label="Close" onClick="removeMenu(this, ${opsi_menu.menuid}, ${opsi_menu.id_kategori})">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </span>
+                        ${text}
                     </td>
                     <td>${additionalText}</td>
                 </tr>
@@ -1752,8 +1792,16 @@
             createData.opsi_menu.push(opsi_menu)
             return createData
         }
-        function removeMenu(event, menuid) {
+        function removeMenu(event, menuid, id_kategori) {
             $(event).parents('.menu_terpilih').remove()
+            var menu_terpilih = $(`.daftar_menu_terpilih_${id_kategori}`).children('.menu_terpilih')
+            if (menu_terpilih.length == 0) {
+                $(`.daftar_menu_terpilih_${id_kategori}`).append(`
+                <tr class="tr_daftar_menu_terpilih_${ id_kategori }">
+                        <td colspan="2">Belum ada menu yang dipilih</td>
+                    </tr>
+                `)
+            }
         }
         var prevMenuPaket = 0
         function openAdditionalMenuPaket (event) {

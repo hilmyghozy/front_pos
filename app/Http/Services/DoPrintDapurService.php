@@ -159,7 +159,7 @@ class DoPrintDapurService
             $printer->feed();
         }
 
-        return Log::info([$printer->getPrintConnector()]);
+        // return Log::info([$printer->getPrintConnector()]);
         /* Cut the receipt and open the cash drawer */
         $printer->cut();
         // $printer -> pulse();

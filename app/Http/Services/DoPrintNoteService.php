@@ -110,7 +110,7 @@ class DoPrintNoteService
         $printer->text($this->notes . "\n");
         $printer->text("____________\n");
         $printer->feed();
-        return Log::info([$printer->getPrintConnector()]);
+        // return Log::info([$printer->getPrintConnector()]);
         $printer->cut();
 
         $printer->close();

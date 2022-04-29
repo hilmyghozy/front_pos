@@ -127,7 +127,7 @@ class DoPrintDeleteOrderService
         }
         $printer->text("____________\n");
         $printer->feed();
-        return Log::info([$printer->getPrintConnector()]);
+        // return Log::info([$printer->getPrintConnector()]);
 
 
         /* Cut the receipt and open the cash drawer */

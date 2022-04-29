@@ -6,19 +6,19 @@
                 <div class="accordion" id="accordionExample_{{ $lists[0]->id_kategori }}">
                     <div class="card">
                         <div class="card-header" id="headingOne_{{ $lists[0]->id_kategori }}">
-                            <h2 class="mb-0">
-                                <button class="btn btn-link btn-block text-left h3" type="button" data-toggle="collapse" data-target="#collapseOne_{{ $lists[0]->id_kategori }}" aria-expanded="true" aria-controls="collapseOne_{{ $lists[0]->id_kategori }}">
-                                    {{ $key }}
-                                </button>
-                            </h2>
+                            <h4 class="mb-0">
+                                <a href="javascript:;" type="button" data-toggle="collapse" data-target="#collapseOne_{{ $lists[0]->id_kategori }}" aria-expanded="true" aria-controls="collapseOne_{{ $lists[0]->id_kategori }}">
+                                    {{ $key . ' (' . $lists[0]->jumlah . ')'}}
+                                </a>
+                            </h4>
                         </div>
                         <table class="table">
-                            <thead>
+                            {{-- <thead>
                                 <tr>
                                     <th scope="col" colspan="2">Menu Dipilih</th>
                                 </tr>
-                            </thead>
-                            <tbody class="daftar_menu_terpilih_{{ $lists[0]->id_kategori }}">
+                            </thead> --}}
+                            <tbody class="daftar_menu_terpilih_{{ $lists[0]->id_kategori }}" data-jumlah="{{ $lists[0]->jumlah }}" data-kategori="{{ $key }}">
                                 <tr class="tr_daftar_menu_terpilih_{{ $lists[0]->id_kategori }}">
                                     <td colspan="2">Belum ada menu yang dipilih</td>
                                 </tr>

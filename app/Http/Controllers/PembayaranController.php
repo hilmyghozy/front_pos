@@ -421,7 +421,62 @@ class PembayaranController extends Controller
             'update' => null
         ];
         if ($pos_revisi_bayar->id_item == $item_to->id_item) {
-            DB::table('pos_revisi_bayar')
+            if ($pos_revisi_bayar->qty != $request->qty_item) {
+                if ($qty_pos_revisi_bayar > $qty_item) {
+                    $qty_revisi = $pos_revisi_bayar->qty - $request->qty_item;
+                    $pajak_revisi = $pos_revisi_bayar->pajak * $qty_revisi;
+                    $total_revisi = ($pos_revisi_bayar->harga * $qty_revisi) + $pajak_revisi;
+                    DB::table('pos_revisi_bayar')
+                    ->where('id', $request->id_pos_revisi_bayar)
+                    ->update([
+                        'qty' => $qty_revisi,
+                        'total' => $total_revisi
+                    ]);
+                    DB::table('pos_revisi_bayar')->insert([
+                        'nama_item' => $item_to->nama_item,
+                        'id_item' => $item_to->id_item,
+                        'id_kategori' => $item_to->id_kategori,
+                        'id_store' => $item_to->id_store,
+                        'id_kasir' => $pos_belum->id_kasir,
+                        'harga' => $harga,
+                        'qty' => $request->qty_item,
+                        'total' => ($total * $request->qty_item),
+                        'pajak' => $pajak,
+                        'kode_temp' => $request->kode_temp,
+                        'item_size' => $item_size,
+                        'item_type' => $item_type,
+                        'opsi_menu' => $opsi_menu,
+                        'additional_menu' => $additional_menu
+                    ]);
+                    $revisi_update = DB::table('pos_revisi_bayar')->where('id', $request->id_pos_revisi_bayar)->first();
+                    if ($revisi_update->additional_menu) $revisi_update->additional_menu = json_decode($revisi_update->additional_menu);
+                    if ($revisi_update->item_type) $revisi_update->item_type = json_decode($revisi_update->item_type);
+                    if ($revisi_update->opsi_menu) $revisi_update->opsi_menu = json_decode($revisi_update->opsi_menu);
+                    $response['update'] = (array)$revisi_update;
+                    $response['create'] = $request->all();
+                } else {
+                    DB::table('pos_revisi_bayar')
+                    ->where('id', $request->id_pos_revisi_bayar)
+                    ->update([
+                        'nama_item' => $item_to->nama_item,
+                        'id_item' => $item_to->id_item,
+                        'id_kategori' => $item_to->id_kategori,
+                        'id_store' => $item_to->id_store,
+                        'id_kasir' => $pos_belum->id_kasir,
+                        'harga' => $harga,
+                        'qty' => $request->qty_item,
+                        'total' => ($total * $request->qty_item),
+                        'pajak' => $pajak,
+                        'kode_temp' => $request->kode_temp,
+                        'item_size' => $item_size,
+                        'item_type' => $item_type,
+                        'opsi_menu' => $opsi_menu,
+                        'additional_menu' => $additional_menu
+                    ]);
+                    $response['update'] = $request->all();
+                }
+            } else {
+                DB::table('pos_revisi_bayar')
                 ->where('id', $request->id_pos_revisi_bayar)
                 ->update([
                     'nama_item' => $item_to->nama_item,
@@ -439,7 +494,8 @@ class PembayaranController extends Controller
                     'opsi_menu' => $opsi_menu,
                     'additional_menu' => $additional_menu
                 ]);
-            $response['update'] = $request->all();
+                $response['update'] = $request->all();
+            }
         } else {
             if ($qty_pos_revisi_bayar > $qty_item) {
                 $qty_revisi = $pos_revisi_bayar->qty - $request->qty_item;
@@ -467,8 +523,11 @@ class PembayaranController extends Controller
                     'opsi_menu' => $opsi_menu,
                     'additional_menu' => $additional_menu
                 ]);
-                $response['update'] = (array)DB::table('pos_revisi_bayar')
-                    ->where('id', $request->id_pos_revisi_bayar)->first();
+                $revisi_update = DB::table('pos_revisi_bayar')->where('id', $request->id_pos_revisi_bayar)->first();
+                if ($revisi_update->additional_menu) $revisi_update->additional_menu = json_decode($revisi_update->additional_menu);
+                if ($revisi_update->item_type) $revisi_update->item_type = json_decode($revisi_update->item_type);
+                if ($revisi_update->opsi_menu) $revisi_update->opsi_menu = json_decode($revisi_update->opsi_menu);
+                $response['update'] = (array)$revisi_update;
                 $response['create'] = $request->all();
             } else {
                 DB::table('pos_revisi_bayar')
@@ -1216,6 +1275,7 @@ class PembayaranController extends Controller
         $data_need_to_update = [];
         $data_need_to_delete = [];
         $data_need_to_add = [];
+        // return response()->json($delete_data);
         foreach ($delete_data as $index => $data) {
             if (!isset($data['additional_menu'])) $data['additional_menu'] = [];
             $data['additional_menu'] = collect($data['additional_menu'])->sortBy('id')->values();
@@ -1286,8 +1346,16 @@ class PembayaranController extends Controller
                 if ($data->id_kategori == $data_awal->id_kategori) {
                     if ((count($data->opsi_menu) == 0) && (count($data_awal->opsi_menu) == 0)) {
                         $data->data_awal = $data_awal;
-                        if ($data->order_id != $data_awal->order_id) array_push($data_need_to_update, $data);
+                        if ($data->order_id != $data_awal->order_id) {
+                            array_push($data_need_to_update, $data);
+                            continue;
+                        }
+                        if ($data->qty != $data_awal->qty) {
+                            array_push($data_need_to_update, $data);
+                            continue;
+                        }
                     } else {
+                        $data->data_awal = $data_awal;
                         $data_awal_opsi_menu = $data_awal->opsi_menu;
                         $data_opsi_menu = $data->opsi_menu;
                         if (count($data_opsi_menu) == 0 && count($data_awal_opsi_menu) != 0) {
@@ -1350,6 +1418,7 @@ class PembayaranController extends Controller
             }
         }
         $printers = DB::table('pos_product_kategori')->where('is_paket', 0)->get();
+        // return response()->json($data_need_to_add);
         foreach ($printers as $printer) {
             $update = collect($data_need_to_update)->where('id_kategori', $printer->id_kategori)->values();
             $delete = collect($data_need_to_delete)->where('id_kategori', $printer->id_kategori)->values()->toArray();
