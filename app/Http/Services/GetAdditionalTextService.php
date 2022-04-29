@@ -7,17 +7,17 @@ class GetAdditionalTextService
     /**
      * @var string $text
      */
-    var $text;
+    public $text;
 
     /**
      * @var null|object
      */
-    var $item_type;
+    public $item_type;
 
     /**
      * @var null|object
      */
-    var $item_size;
+    public $item_size;
 
     /**
      * @param string $text
@@ -35,9 +35,18 @@ class GetAdditionalTextService
     {
         $item_type = $this->item_type;
         if ($item_type) {
+            if (is_string($item_type)) $item_type = json_decode($item_type);
             if (is_object($item_type)) $item_type = (array)$item_type;
             if (isset($item_type['text'])) {
                 $this->text = $item_type['text'];
+            } else if (isset($item_type['nama_type'])) {
+                $nama_type = $item_type['nama_type'];
+                $contain_type = str_contains($this->text, "($nama_type)");
+                if ($contain_type) {
+                    return $this->text;
+                } else {
+                    return $this->text . " " . $nama_type;
+                }
             } else {
                 $this->text = $this->text;
             }
