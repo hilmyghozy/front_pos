@@ -15,9 +15,9 @@
                             <thead>
                                 <tr>
                                     <th>No</th>
-                                    <th>ID</th>
                                     <th>Nama</th>
                                     <th>Harga</th>
+                                    <th>Harga Thirdpparty</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -29,9 +29,9 @@
                                 data-kategori="{{ $produk->id_kategori }}"
                                 >
                                     <td>{{ $produk->nomor}}</td>
-                                    <td>{{$produk->id_item}}</td>
                                     <td>{{$produk->nama_item}}</td>
                                     <td>Rp. {{number_format($produk->harga_jual,0,',','.')}}</td>
+                                    <td>Rp. {{number_format($produk->thirdparty,0,',','.')}}</td>
                                 </tr>
                             @endforeach
                             </tbody>

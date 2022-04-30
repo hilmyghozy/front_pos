@@ -133,10 +133,15 @@ class DoPrintDapurRevisiService
             $item_lama_exists = $this->filterExists($data_lama, $nama_item, $additional_menu);
             $item_revisi_exists = $this->filterExists($data_revisi, $nama_item, $additional_menu);
             $condition = false;
-            if ($item_lama_exists && $item_revisi_exists) {
-                $condition = $item_lama_exists->qty == ($qty + $item_revisi_exists->qty);
+            $condition_2 = false;
+            if ($item_revisi_exists) {
+                $condition = $item_revisi_exists->qty == $qty;
+            } if ($item_lama_exists && $item_revisi_exists) {
+                $condition_2 = $item_lama_exists->qty == ($qty + $item_revisi_exists->qty);
             }
             if ($condition) {
+                $data_revisi = $this->mapAddQty($data_revisi, $item_revisi_exists, $qty);
+            } else if ($condition_2) {
                 $data_lama = $this->filterExcept($data_lama, $item_lama_exists);
                 $data_revisi = $this->filterExcept($data_revisi, $item_revisi_exists);
             } else {
@@ -147,7 +152,9 @@ class DoPrintDapurRevisiService
                 ]);
             }
         }
-        $condition = (count($data_dihapus) == 0) && (count($data_tambahan) == 0) && (count($data_lama) == 0) && (count($data_revisi) == 0);
+        $new_data_revisi = $this->filterDataRevisi($data_revisi, $data_lama);
+        $new_data_lama = $this->filterDataRevisi($data_lama, $data_revisi);
+        $condition = (count($data_dihapus) == 0) && (count($data_tambahan) == 0) && (count($new_data_lama) == 0) && (count($new_data_revisi) == 0);
         if ($condition) {
             return;
         }
@@ -192,14 +199,14 @@ class DoPrintDapurRevisiService
         
         
         /* Items */
-        if (count($this->data_revisi) > 0) {
+        if (count($new_data_lama) > 0 && count($new_data_revisi) > 0) {
             $printer->text($desc);
             $printer->text("____________\n");
             $printer->feed();
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->text("FROM\n");
             $printer->feed();
-            foreach ($data_lama as $key => $value) {
+            foreach ($new_data_lama as $key => $value) {
                 $printer->text($value->name . " - (" . $value->qty . ")\n");
                 foreach ($value->additional_menu as $item) {
                     $text = isset($item->text) ? $item->text : $item['text'];
@@ -212,7 +219,7 @@ class DoPrintDapurRevisiService
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->text("TO\n");
             $printer->feed();
-            foreach ($data_revisi as $key => $value) {
+            foreach ($new_data_revisi as $key => $value) {
                 $printer->text($value->name . " - (" . $value->qty . ")\n");
                 foreach ($value->additional_menu as $item) {
                     $text = isset($item->text) ? $item->text : $item['text'];
@@ -223,7 +230,7 @@ class DoPrintDapurRevisiService
             $printer->text("___________\n");
         }
 
-        if (count($this->data_dihapus) > 0) {
+        if (count($data_dihapus) > 0) {
             $printer->feed();
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->text("CANCELED MENU\n");
@@ -241,7 +248,7 @@ class DoPrintDapurRevisiService
             $printer->text("___________\n");
         }
 
-        if (count($this->data_tambahan) > 0) {
+        if (count($data_tambahan) > 0) {
             $printer->feed();
             $printer->setJustification(Printer::JUSTIFY_LEFT);
             $printer->text("NEW MENU\n");
@@ -274,6 +281,8 @@ class DoPrintDapurRevisiService
         return collect($data)->filter(function($value, $key) use($nama_item, $additional_menu) {
             $similar_name = $nama_item == $value->name;
             $similar_additional_menu = $additional_menu == $value->additional_menu;
+            $diff_additional_menu = strcmp(json_encode($additional_menu), json_encode($value->additional_menu));
+            $similar_additional_menu = $diff_additional_menu == 0;
             $condition = $similar_additional_menu && $similar_name;
             if ($condition) return $condition;
         })->first();
@@ -284,7 +293,36 @@ class DoPrintDapurRevisiService
         return collect($data_lama)->filter(function($value) use ($item) {
             $similar_name = $item->name == $value->name;
             $similar_additional_menu = $item->additional_menu == $value->additional_menu;
+            $diff_additional_menu = strcmp(json_encode($item->additional_menu), json_encode($value->additional_menu));
+            $similar_additional_menu = $diff_additional_menu == 0;
             $similar_qty = $item->qty == $value->qty;
+            $condition = $similar_additional_menu && $similar_name && $similar_qty;
+            if (!$condition) return true;
+        })->values();
+    }
+
+    private function mapAddQty($data = [], $item, $qty = 0)
+    {
+        return collect($data)->map(function($value) use ($item, $qty) {
+            $similar_name = $item->name == $value->name;
+            $similar_additional_menu = $item->additional_menu == $value->additional_menu;
+            $similar_qty = $item->qty == $value->qty;
+            $condition = $similar_additional_menu && $similar_name && $similar_qty;
+            if ($condition) $value->qty += $qty;
+            return $value;
+        })->values();
+    }
+
+    private function filterDataRevisi($data_lama, $data_revisi)
+    {
+        return collect($data_lama)->filter(function($value, $key) use ($data_revisi) {
+            $similar_name = $data_revisi[$key]->name == $value->name;
+            $similar_additional_menu = $data_revisi[$key]->additional_menu == $value->additional_menu;
+            $data_revisi_additional_menu = $data_revisi[$key]->additional_menu;
+            $value_additional_menu = $value->additional_menu;
+            $diff_additional_menu = strcmp(json_encode($data_revisi_additional_menu), json_encode($value_additional_menu));
+            $similar_additional_menu = $diff_additional_menu == 0;
+            $similar_qty = $data_revisi[$key]->qty == $value->qty;
             $condition = $similar_additional_menu && $similar_name && $similar_qty;
             if (!$condition) return true;
         })->values();

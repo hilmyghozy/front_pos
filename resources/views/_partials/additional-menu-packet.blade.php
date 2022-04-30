@@ -40,7 +40,7 @@
                                             data-dataid="{{$menu->id_item}}"
                                             data-type="item"
                                             data-text="{{ $menu->nama_item }}"
-                                            data-kategori="{{ $lists[0]->id_kategori }}"
+                                            data-kategori="{{ $menu->id_kategori }}"
                                             data-menu_type="{{ $menu->menu_type }}"
                                             data-selected_menu_type="0"
                                             data-jumlah_menu="{{ $menu->jumlah }}"
