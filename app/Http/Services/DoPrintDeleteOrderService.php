@@ -123,6 +123,10 @@ class DoPrintDeleteOrderService
         $printer->setJustification(Printer::JUSTIFY_LEFT);
         foreach ($this->data as $key => $value) {
             $printer->text($value->nama_item . " - (" . $value->qty . ")\n");
+            $additional_menu = isset($value->additional_menu) ? $value->additional_menu : [];
+            foreach ($additional_menu as $item) {
+                $printer->text(" + $item->text \n");
+            }
             $printer->feed();
         }
         $printer->text("____________\n");

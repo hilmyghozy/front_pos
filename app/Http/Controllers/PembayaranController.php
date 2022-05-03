@@ -421,9 +421,9 @@ class PembayaranController extends Controller
             'update' => null
         ];
         if ($pos_revisi_bayar->id_item == $item_to->id_item) {
-            if ($pos_revisi_bayar->qty != $request->qty_item) {
+            if ($qty_pos_revisi_bayar != $qty_item) {
                 if ($qty_pos_revisi_bayar > $qty_item) {
-                    $qty_revisi = $pos_revisi_bayar->qty - $request->qty_item;
+                    $qty_revisi = $qty_pos_revisi_bayar - $qty_item;
                     $pajak_revisi = $pos_revisi_bayar->pajak * $qty_revisi;
                     $total_revisi = ($pos_revisi_bayar->harga * $qty_revisi) + $pajak_revisi;
                     DB::table('pos_revisi_bayar')
@@ -439,8 +439,8 @@ class PembayaranController extends Controller
                         'id_store' => $item_to->id_store,
                         'id_kasir' => $pos_belum->id_kasir,
                         'harga' => $harga,
-                        'qty' => $request->qty_item,
-                        'total' => ($total * $request->qty_item),
+                        'qty' => $qty_item,
+                        'total' => ($total * $qty_item),
                         'pajak' => $pajak,
                         'kode_temp' => $request->kode_temp,
                         'item_size' => $item_size,
@@ -464,8 +464,8 @@ class PembayaranController extends Controller
                         'id_store' => $item_to->id_store,
                         'id_kasir' => $pos_belum->id_kasir,
                         'harga' => $harga,
-                        'qty' => $request->qty_item,
-                        'total' => ($total * $request->qty_item),
+                        'qty' => $qty_item,
+                        'total' => ($total * $qty_item),
                         'pajak' => $pajak,
                         'kode_temp' => $request->kode_temp,
                         'item_size' => $item_size,
@@ -485,8 +485,8 @@ class PembayaranController extends Controller
                     'id_store' => $item_to->id_store,
                     'id_kasir' => $pos_belum->id_kasir,
                     'harga' => $harga,
-                    'qty' => $request->qty_item,
-                    'total' => ($total * $request->qty_item),
+                    'qty' => $qty_item,
+                    'total' => ($total * $qty_item),
                     'pajak' => $pajak,
                     'kode_temp' => $request->kode_temp,
                     'item_size' => $item_size,
@@ -498,7 +498,7 @@ class PembayaranController extends Controller
             }
         } else {
             if ($qty_pos_revisi_bayar > $qty_item) {
-                $qty_revisi = $pos_revisi_bayar->qty - $request->qty_item;
+                $qty_revisi = $qty_pos_revisi_bayar - $qty_item;
                 $pajak_revisi = $pos_revisi_bayar->pajak * $qty_revisi;
                 $total_revisi = ($pos_revisi_bayar->harga * $qty_revisi) + $pajak_revisi;
                 DB::table('pos_revisi_bayar')
@@ -514,8 +514,8 @@ class PembayaranController extends Controller
                     'id_store' => $item_to->id_store,
                     'id_kasir' => $pos_belum->id_kasir,
                     'harga' => $harga,
-                    'qty' => $request->qty_item,
-                    'total' => ($total * $request->qty_item),
+                    'qty' => $qty_item,
+                    'total' => ($total * $qty_item),
                     'pajak' => $pajak,
                     'kode_temp' => $request->kode_temp,
                     'item_size' => $item_size,
@@ -539,8 +539,8 @@ class PembayaranController extends Controller
                         'id_store' => $item_to->id_store,
                         'id_kasir' => $pos_belum->id_kasir,
                         'harga' => $harga,
-                        'qty' => $request->qty_item,
-                        'total' => ($total * $request->qty_item),
+                        'qty' => $qty_item,
+                        'total' => ($total * $qty_item),
                         'pajak' => $pajak,
                         'kode_temp' => $request->kode_temp,
                         'item_size' => $item_size,
@@ -1373,7 +1373,8 @@ class PembayaranController extends Controller
                                 return $option;
                             })->values();
                             // return response()->json([$data_awal_opsi_menu, $data_opsi_menu]);
-                            if ($data->id == $data_awal->id_item) {
+                            $data_id_item = isset($data->id_item) ? $data->id_item : $data->id;
+                            if ($data_id_item == $data_awal->id_item) {
                                 foreach ($data_opsi_menu as $index => $opsi_menu) {
                                     if (is_object($opsi_menu)) $opsi_menu = (array)$opsi_menu;
                                     $opsi_awal = $data_awal_opsi_menu[$index];
@@ -1383,7 +1384,7 @@ class PembayaranController extends Controller
                                     $condition = $item_type || $additional || $qty;
                                     if ($condition) {
                                         if (is_array($opsi_menu)) $opsi_menu = (object)$opsi_menu;
-                                            $opsi_menu->data_awal = $opsi_awal;
+                                        $opsi_menu->data_awal = $opsi_awal;
                                         array_push($data_need_to_update, $opsi_menu);
                                     }
                                 }
